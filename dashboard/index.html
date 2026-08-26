@@ -197,12 +197,12 @@ textarea::placeholder{color:var(--muted);}
     <div class="sidebar-bottom">
       <div class="sidebar-label-bottom">Agents</div>
       <div class="agents-grid">
-        <button class="agent-btn active" onclick="setAgent('GENERAL',this)"><span class="agent-icon">✦</span>General</button>
-        <button class="agent-btn" onclick="setAgent('STUDY',this)"><span class="agent-icon">📚</span>Study</button>
-        <button class="agent-btn" onclick="setAgent('CODING',this)"><span class="agent-icon">💻</span>Coding</button>
-        <button class="agent-btn" onclick="setAgent('RESEARCH',this)"><span class="agent-icon">🔍</span>Research</button>
-        <button class="agent-btn" onclick="setAgent('NOTES',this)"><span class="agent-icon">📝</span>Notes</button>
-        <button class="agent-btn" onclick="setAgent('PLANNER',this)"><span class="agent-icon">🗓</span>Planner</button>
+        <button class="agent-btn active" data-agent="GENERAL" onclick="setAgent('GENERAL',this)"><span class="agent-icon">✦</span>General</button>
+        <button class="agent-btn" data-agent="STUDY" onclick="setAgent('STUDY',this)"><span class="agent-icon">📚</span>Study</button>
+        <button class="agent-btn" data-agent="CODING" onclick="setAgent('CODING',this)"><span class="agent-icon">💻</span>Coding</button>
+        <button class="agent-btn" data-agent="RESEARCH" onclick="setAgent('RESEARCH',this)"><span class="agent-icon">🔍</span>Research</button>
+        <button class="agent-btn" data-agent="NOTES" onclick="setAgent('NOTES',this)"><span class="agent-icon">📝</span>Notes</button>
+        <button class="agent-btn" data-agent="PLANNER" onclick="setAgent('PLANNER',this)"><span class="agent-icon">🗓</span>Planner</button>
       </div>
       <div class="sidebar-label-bottom">Theme</div>
       <div class="theme-grid">
@@ -334,7 +334,7 @@ onAuthStateChanged(auth, async (user) => {
 
 <script>
 const API = 'https://eira-backend-l77h.onrender.com';
-let history = [], currentAgent = 'GENERAL', isLoading = false, currentSessionId = null;
+let chatHistory = [], currentAgent = 'GENERAL', isLoading = false, currentSessionId = null;
 
 // ── Agent-specific welcome content ──
 const AGENT_CONTENT = {
@@ -421,16 +421,28 @@ if (saved) {
   });
 }
 
-function setAgent(agent, btn) {
+// Applies an agent switch to the UI only — no history side effects.
+// Used both by the click handler (setAgent) and by the popstate handler,
+// so that navigating back/forward never re-pushes a new history entry.
+function _applyAgentUI(agent) {
   currentAgent = agent;
   document.querySelectorAll('.agent-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  const btn = document.querySelector(`.agent-btn[data-agent="${agent}"]`);
+  if (btn) btn.classList.add('active');
   document.getElementById('topbar-agent').textContent = agent;
 
   // If welcome screen is currently showing (no chat started yet), refresh it with agent-specific prompts
   if (document.getElementById('welcome')) {
     renderWelcome(agent);
   }
+}
+
+// Click handler: applies the agent switch AND records an in-app history
+// checkpoint, so the browser back button returns to the previous agent
+// instead of leaving the app entirely.
+function setAgent(agent, btn) {
+  _applyAgentUI(agent);
+  window.history.pushState({type: 'agent', agent: agent, sessionId: currentSessionId}, '');
 }
 
 async function getAuthHeaders() {
@@ -463,18 +475,28 @@ function renderSessions(sessions) {
   }).join('');
 }
 
-async function loadSession(sessionId) {
+// Applies loading a session to the UI only — no history side effects.
+// Used both by the click handler (loadSession) and by the popstate handler.
+async function _applySessionLoad(sessionId) {
   currentSessionId = sessionId;
-  history = [];
+  chatHistory = [];
   try {
     const headers = await getAuthHeaders();
     const res = await fetch(`${API}/sessions/${sessionId}/messages`, {headers});
     const messages = await res.json();
     const msgs = document.getElementById('messages');
     msgs.innerHTML = `<div class="typing-indicator" id="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
-    messages.forEach(m => { addMsg(m.role === 'user' ? 'user' : 'eira', m.content, m.agent, m.model, m.timestamp); history.push({role:m.role, content:m.content}); });
+    messages.forEach(m => { addMsg(m.role === 'user' ? 'user' : 'eira', m.content, m.agent, m.model, m.timestamp); chatHistory.push({role:m.role, content:m.content}); });
     loadSessions();
   } catch(e) { showToast('Session load error'); }
+}
+
+// Click handler: loads the session AND records an in-app history checkpoint,
+// so the browser back button returns to the previous session/agent instead
+// of leaving the app entirely.
+async function loadSession(sessionId) {
+  await _applySessionLoad(sessionId);
+  window.history.pushState({type: 'session', sessionId: sessionId, agent: currentAgent}, '');
 }
 
 async function deleteSession(e, sessionId) {
@@ -482,13 +504,28 @@ async function deleteSession(e, sessionId) {
   try {
     const headers = await getAuthHeaders();
     await fetch(`${API}/sessions/${sessionId}`, {method:'DELETE', headers});
-    if (currentSessionId === sessionId) { currentSessionId = null; history = []; renderWelcome(currentAgent); }
+    if (currentSessionId === sessionId) { currentSessionId = null; chatHistory = []; renderWelcome(currentAgent); }
     loadSessions();
     showToast('Chat deleted', 'success');
   } catch(err) { showToast('Delete error'); }
 }
 
-function newChat() { currentSessionId = null; history = []; renderWelcome(currentAgent); loadSessions(); }
+// Applies "new chat" to the UI only — no history side effects.
+// Used both by the click handler (newChat) and by the popstate handler.
+function _applyNewChat() {
+  currentSessionId = null;
+  chatHistory = [];
+  renderWelcome(currentAgent);
+  loadSessions();
+}
+
+// Click handler: resets to a new chat AND records an in-app history
+// checkpoint, so the browser back button returns to the previous
+// session/agent instead of leaving the app entirely.
+function newChat() {
+  _applyNewChat();
+  window.history.pushState({type: 'newchat', agent: currentAgent, sessionId: null}, '');
+}
 function clearCurrentChat() { if (currentSessionId) deleteSession({stopPropagation:()=>{}}, currentSessionId); else newChat(); }
 function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
 function updateCount(el) { document.getElementById('char-count').textContent = el.value.length; }
@@ -556,21 +593,21 @@ async function sendMessage() {
   input.value = ''; input.style.height = 'auto';
   document.getElementById('char-count').textContent = '0';
   addMsg('user', msg);
-  history.push({role:'user', content:msg});
+  chatHistory.push({role:'user', content:msg});
   document.getElementById('typing').classList.add('visible');
   document.getElementById('messages').scrollTop = 999999;
   try {
     const headers = await getAuthHeaders();
     const res = await fetch(`${API}/chat`, {
       method:'POST', headers,
-      body: JSON.stringify({message:msg, history:history.slice(-10), session_id:currentSessionId||''})
+      body: JSON.stringify({message:msg, history:chatHistory.slice(-10), session_id:currentSessionId||''})
     });
     if (!res.ok) throw new Error(`${res.status}`);
     const data = await res.json();
     document.getElementById('typing').classList.remove('visible');
     if (!currentSessionId) { currentSessionId = data.session_id; setTimeout(loadSessions, 500); }
     addMsg('eira', data.response, data.agent, data.model);
-    history.push({role:'assistant', content:data.response});
+    chatHistory.push({role:'assistant', content:data.response});
     if (data.model) document.getElementById('current-model').textContent = data.model;
     setTimeout(loadSessions, 300);
   } catch(err) {
@@ -582,6 +619,29 @@ async function sendMessage() {
   document.getElementById('send-btn').disabled = false;
   input.focus();
 }
+
+// ── Browser back/forward button support ──
+// Sets a baseline "new chat" checkpoint for the current page load, without
+// adding an extra entry (replaceState, not pushState). Every agent switch,
+// session open, and "New Chat" click pushes a new entry after this one, so
+// pressing Back walks through those in-app states before finally leaving
+// the app — instead of leaving on the very first Back press.
+window.history.replaceState({type: 'newchat', agent: currentAgent, sessionId: null}, '');
+
+window.addEventListener('popstate', (event) => {
+  const state = event.state;
+  if (!state) {
+    _applyNewChat();
+    return;
+  }
+  if (state.type === 'agent') {
+    _applyAgentUI(state.agent);
+  } else if (state.type === 'session') {
+    _applySessionLoad(state.sessionId);
+  } else if (state.type === 'newchat') {
+    _applyNewChat();
+  }
+});
 </script>
 </body>
 </html>
