@@ -1,9 +1,13 @@
 # ============================================================
-# EIRA — FastAPI Server (with Sessions)
+# EIRA — FastAPI Server (with Firebase Auth + Per-User Sessions)
 # ============================================================
 
+import sys
+sys.path.append("C:/EIRA")
+
+import os
 import uuid
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from core.eira import chat_with_eira
@@ -22,7 +26,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Models ---
+async def get_user_id(request: Request) -> str:
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return "anonymous"
+    token = auth.split("Bearer ")[1]
+    try:
+        import firebase_admin
+        from firebase_admin import auth as fb_auth, credentials
+        if not firebase_admin._apps:
+            cred_json = os.getenv("FIREBASE_CREDENTIALS")
+            if cred_json:
+                import json
+                cred = credentials.Certificate(json.loads(cred_json))
+                firebase_admin.initialize_app(cred)
+            else:
+                return "anonymous"
+        decoded = fb_auth.verify_id_token(token)
+        return decoded["uid"]
+    except Exception as e:
+        print(f"Auth error: {e}")
+        return "anonymous"
+
 class ChatRequest(BaseModel):
     message: str
     history: list = []
@@ -37,35 +62,30 @@ class ChatResponse(BaseModel):
 class SessionRequest(BaseModel):
     title: str = "New Chat"
 
-# --- Health check ---
 @app.get("/")
 async def root():
     return {"status": "EIRA is online! 🔥"}
 
-# --- Main chat ---
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    # Session handle karo
-    session_id = request.session_id
+async def chat(request: Request, body: ChatRequest):
+    user_id = await get_user_id(request)
+    session_id = body.session_id
     if not session_id:
         session_id = str(uuid.uuid4())
-        create_session(session_id, "New Chat")
+        create_session(session_id, "New Chat", user_id)
 
-    routing = detect_intent(request.message)
-    response = chat_with_eira(request.message, request.history)
+    routing = detect_intent(body.message)
+    response = chat_with_eira(body.message, body.history)
 
-    # Messages save karo
-    save_message(session_id, "user", request.message,
+    save_message(session_id, "user", body.message,
                  routing["agent"], routing["model"])
     save_message(session_id, "assistant", response,
                  routing["agent"], routing["model"])
 
-    # Title update karo — pehle message se
-    sessions = get_sessions()
+    sessions = get_sessions(user_id)
     for s in sessions:
         if s["id"] == session_id and s["title"] == "New Chat":
-            title = request.message[:40]
-            update_session_title(session_id, title)
+            update_session_title(session_id, body.message[:40])
             break
 
     return ChatResponse(
@@ -75,32 +95,29 @@ async def chat(request: ChatRequest):
         session_id=session_id
     )
 
-# --- Session endpoints ---
 @app.get("/sessions")
-async def list_sessions():
-    return get_sessions()
+async def list_sessions(request: Request):
+    user_id = await get_user_id(request)
+    return get_sessions(user_id)
 
 @app.get("/sessions/{session_id}/messages")
 async def session_messages(session_id: str):
     return get_messages(session_id)
 
 @app.post("/sessions")
-async def new_session(req: SessionRequest):
+async def new_session(request: Request, req: SessionRequest):
+    user_id = await get_user_id(request)
     session_id = str(uuid.uuid4())
-    create_session(session_id, req.title)
+    create_session(session_id, req.title, user_id)
     return {"session_id": session_id, "title": req.title}
 
 @app.delete("/sessions/{session_id}")
-async def remove_session(session_id: str):
-    delete_session(session_id)
+async def remove_session(session_id: str, request: Request):
+    user_id = await get_user_id(request)
+    delete_session(session_id, user_id)
     return {"status": "deleted"}
 
-
-# ============================================================
-# --- Server startup (TOP LEVEL — koi function ke andar nahi) ---
-# ============================================================
 if __name__ == "__main__":
-    import os
     import uvicorn
     port = int(os.getenv("PORT", 8001))
     print("=" * 40)
