@@ -43,7 +43,8 @@ AGENT_KEYWORDS = {
         "which is better", "pros cons", "technology", "framework",
         "library", "search", "find", "look up", "information",
         "tell me about", "what are", "latest", "trend",
-        "best way", "options", "alternatives", "recommend"
+        "best way", "options", "alternatives", "recommend",
+        "link", "playlist", "resource", "resources", "course", "course link"
     ],
 
     "planner": [

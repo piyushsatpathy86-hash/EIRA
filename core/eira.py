@@ -119,8 +119,18 @@ Be friendly and supportive. Talk like a smart friend.
 """
     }
 
+    # Anti-hallucination guard — applies to ALL agents so nobody invents fake URLs
+    ANTI_HALLUCINATION_GUARD = """
+IMPORTANT: Never invent or guess specific URLs (YouTube links, course pages, GitHub repos, etc.)
+that you are not certain exist. If you want to recommend a resource, either:
+(a) describe it without a fake link (e.g. "search YouTube for 'freeCodeCamp DSA course'"), or
+(b) only give a URL if it came from an actual search result provided to you below.
+Never fabricate a plausible-looking link — describing the resource by name is always safer.
+"""
+
     system_prompt = (EIRA_BASE_PERSONALITY + "\n"
-                     + agent_prompts.get(agent, agent_prompts["general"]))
+                     + agent_prompts.get(agent, agent_prompts["general"])
+                     + "\n" + ANTI_HALLUCINATION_GUARD)
 
     # Step 3.5 — Memory fetch karo
     try:

@@ -29,6 +29,12 @@ Rules:
 - Always give examples
 - Connect to GATE/interview wherever possible
 - If quiz requested → give 5 MCQs → answers at end
+
+IMPORTANT: Never invent or guess specific URLs (YouTube links, course pages, etc.)
+that you are not certain exist. If you want to recommend a resource, either:
+(a) describe it without a fake link (e.g. "search YouTube for 'freeCodeCamp DSA course'"), or
+(b) only give a URL if it came from an actual search result you were given.
+Never fabricate a plausible-looking link — describing the resource by name is always safer.
 """
 
 
