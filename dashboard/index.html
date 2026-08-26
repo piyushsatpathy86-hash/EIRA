@@ -225,15 +225,15 @@ textarea::placeholder{color:var(--muted);}
     </div>
     <div class="messages" id="messages">
       <div class="welcome" id="welcome">
-        <div class="welcome-name">EIRA</div>
-        <div class="welcome-sub">Enhanced Intelligent Reasoning Assistant</div>
-        <div class="component-grid">
+        <div class="welcome-name" id="welcome-name">EIRA</div>
+        <div class="welcome-sub" id="welcome-sub">Enhanced Intelligent Reasoning Assistant</div>
+        <div class="component-grid" id="component-grid">
           <div class="comp-card" onclick="quickSend('Create study notes on binary search trees')"><div class="comp-card-title">📚 STUDY</div><div class="comp-card-desc">Notes, quizzes, concept explanations</div></div>
           <div class="comp-card" onclick="quickSend('Write a Java linked list implementation')"><div class="comp-card-title">💻 CODING</div><div class="comp-card-desc">Write, debug, review code</div></div>
           <div class="comp-card" onclick="quickSend('Research: what is RAG in AI?')"><div class="comp-card-title">🔍 RESEARCH</div><div class="comp-card-desc">Search, summarize, compare tech</div></div>
           <div class="comp-card" onclick="quickSend('Make a 30-day DSA study plan')"><div class="comp-card-title">🗓 PLANNER</div><div class="comp-card-desc">Study plans, goals, schedules</div></div>
         </div>
-        <div class="suggestions">
+        <div class="suggestions" id="suggestions">
           <button class="suggestion" onclick="quickSend('Explain time complexity with examples')">Time complexity</button>
           <button class="suggestion" onclick="quickSend('Debug this: NullPointerException in Java')">Debug Java error</button>
           <button class="suggestion" onclick="quickSend('Quiz me on sorting algorithms')">Quiz me</button>
@@ -336,6 +336,76 @@ onAuthStateChanged(auth, async (user) => {
 const API = 'https://eira-backend-l77h.onrender.com';
 let history = [], currentAgent = 'GENERAL', isLoading = false, currentSessionId = null;
 
+// ── Agent-specific welcome content ──
+const AGENT_CONTENT = {
+  GENERAL: {
+    name: 'EIRA',
+    sub: 'Enhanced Intelligent Reasoning Assistant',
+    cards: [
+      {title:'📚 STUDY', desc:'Notes, quizzes, concept explanations', prompt:'Create study notes on binary search trees'},
+      {title:'💻 CODING', desc:'Write, debug, review code', prompt:'Write a Java linked list implementation'},
+      {title:'🔍 RESEARCH', desc:'Search, summarize, compare tech', prompt:'Research: what is RAG in AI?'},
+      {title:'🗓 PLANNER', desc:'Study plans, goals, schedules', prompt:'Make a 30-day DSA study plan'}
+    ],
+    suggestions: ['Explain time complexity with examples','Debug this: NullPointerException in Java','Quiz me on sorting algorithms','Compare Stack vs Queue']
+  },
+  STUDY: {
+    name: 'STUDY',
+    sub: 'Notes · Quizzes · Concept Explanations',
+    cards: [
+      {title:'📖 CONCEPT', desc:'Explain a topic simply', prompt:'Explain dynamic programming with an example'},
+      {title:'📝 NOTES', desc:'Generate revision notes', prompt:'Create study notes on operating systems'},
+      {title:'🧠 QUIZ', desc:'Test your knowledge', prompt:'Quiz me on data structures'},
+      {title:'🎯 GATE PREP', desc:'GATE-focused explanations', prompt:'Explain time complexity for GATE prep'}
+    ],
+    suggestions: ['Explain recursion with a diagram','Notes on graph traversal (BFS/DFS)','Quiz me on OS scheduling algorithms','Difference between process and thread']
+  },
+  CODING: {
+    name: 'CODING',
+    sub: 'Write · Debug · Review Code',
+    cards: [
+      {title:'✍️ WRITE', desc:'Generate code from scratch', prompt:'Write a Python function to reverse a linked list'},
+      {title:'🐞 DEBUG', desc:'Fix an error in your code', prompt:'Debug this: NullPointerException in Java'},
+      {title:'🔍 REVIEW', desc:'Review code for improvements', prompt:'Review this code for best practices: [paste code]'},
+      {title:'📘 EXPLAIN', desc:'Understand what code does', prompt:'Explain what this code does: [paste code]'}
+    ],
+    suggestions: ['Write a REST API in FastAPI','Fix this SQL query error','Optimize this function for speed','Explain Big-O of this algorithm']
+  },
+  RESEARCH: {
+    name: 'RESEARCH',
+    sub: 'Search · Summarize · Compare',
+    cards: [
+      {title:'🔎 SEARCH', desc:'Find latest info on a topic', prompt:'What are the latest trends in AI agents?'},
+      {title:'⚖️ COMPARE', desc:'Compare two technologies', prompt:'Compare React vs Vue for a beginner'},
+      {title:'📊 SUMMARIZE', desc:'Summarize a complex topic', prompt:'Summarize how transformers work in AI'},
+      {title:'🌐 EXPLORE', desc:'Deep dive into a subject', prompt:'Research: what is RAG in AI?'}
+    ],
+    suggestions: ['Latest trends in web development','Compare Python vs JavaScript for AI','What is vector database?','Explain microservices architecture']
+  },
+  NOTES: {
+    name: 'NOTES',
+    sub: 'YouTube Transcripts · Revision Sheets',
+    cards: [
+      {title:'🎥 YOUTUBE', desc:'Turn a video into notes', prompt:'Convert this YouTube video into notes: [paste link]'},
+      {title:'📄 SUMMARY', desc:'Summarize long content', prompt:'Summarize this lecture into key points: [paste text]'},
+      {title:'🗂 REVISION', desc:'Create a revision sheet', prompt:'Make a revision sheet for DBMS normalization'},
+      {title:'✏️ FLASHCARDS', desc:'Generate flashcards', prompt:'Create flashcards for computer networks basics'}
+    ],
+    suggestions: ['Notes from a DSA YouTube playlist','Summarize this article in bullet points','Revision sheet for OOP concepts','Flashcards on SQL joins']
+  },
+  PLANNER: {
+    name: 'PLANNER',
+    sub: 'Study Plans · Goals · Schedules',
+    cards: [
+      {title:'📅 STUDY PLAN', desc:'Create a study schedule', prompt:'Make a 30-day DSA study plan'},
+      {title:'🎯 GOALS', desc:'Break down a big goal', prompt:'Help me plan for placements in 3 months'},
+      {title:'⏱ ROUTINE', desc:'Design a daily routine', prompt:'Create a daily study routine for a college student'},
+      {title:'📈 PROGRESS', desc:'Track your progress', prompt:'Help me plan revision for upcoming exams'}
+    ],
+    suggestions: ['30-day DSA roadmap','Plan for GATE preparation','Daily routine for coding + college','Project timeline for final year project']
+  }
+};
+
 function setTheme(theme, btn) {
   document.body.setAttribute('data-theme', theme);
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
@@ -356,6 +426,11 @@ function setAgent(agent, btn) {
   document.querySelectorAll('.agent-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('topbar-agent').textContent = agent;
+
+  // If welcome screen is currently showing (no chat started yet), refresh it with agent-specific prompts
+  if (document.getElementById('welcome')) {
+    renderWelcome(agent);
+  }
 }
 
 async function getAuthHeaders() {
@@ -407,36 +482,34 @@ async function deleteSession(e, sessionId) {
   try {
     const headers = await getAuthHeaders();
     await fetch(`${API}/sessions/${sessionId}`, {method:'DELETE', headers});
-    if (currentSessionId === sessionId) { currentSessionId = null; history = []; renderWelcome(); }
+    if (currentSessionId === sessionId) { currentSessionId = null; history = []; renderWelcome(currentAgent); }
     loadSessions();
     showToast('Chat deleted', 'success');
   } catch(err) { showToast('Delete error'); }
 }
 
-function newChat() { currentSessionId = null; history = []; renderWelcome(); loadSessions(); }
+function newChat() { currentSessionId = null; history = []; renderWelcome(currentAgent); loadSessions(); }
 function clearCurrentChat() { if (currentSessionId) deleteSession({stopPropagation:()=>{}}, currentSessionId); else newChat(); }
 function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
 function updateCount(el) { document.getElementById('char-count').textContent = el.value.length; }
 function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
 function quickSend(text) { document.getElementById('input').value=text; sendMessage(); }
 
-function renderWelcome() {
+function renderWelcome(agent) {
+  agent = agent || 'GENERAL';
+  const content = AGENT_CONTENT[agent] || AGENT_CONTENT.GENERAL;
+  const cardsHtml = content.cards.map(c =>
+    `<div class="comp-card" onclick="quickSend('${c.prompt.replace(/'/g, "\\'")}')"><div class="comp-card-title">${c.title}</div><div class="comp-card-desc">${c.desc}</div></div>`
+  ).join('');
+  const suggestionsHtml = content.suggestions.map(s =>
+    `<button class="suggestion" onclick="quickSend('${s.replace(/'/g, "\\'")}')">${s}</button>`
+  ).join('');
   document.getElementById('messages').innerHTML = `
     <div class="welcome" id="welcome">
-      <div class="welcome-name">EIRA</div>
-      <div class="welcome-sub">Enhanced Intelligent Reasoning Assistant</div>
-      <div class="component-grid">
-        <div class="comp-card" onclick="quickSend('Create study notes on binary search trees')"><div class="comp-card-title">📚 STUDY</div><div class="comp-card-desc">Notes, quizzes, concept explanations</div></div>
-        <div class="comp-card" onclick="quickSend('Write a Java linked list implementation')"><div class="comp-card-title">💻 CODING</div><div class="comp-card-desc">Write, debug, review code</div></div>
-        <div class="comp-card" onclick="quickSend('Research: what is RAG in AI?')"><div class="comp-card-title">🔍 RESEARCH</div><div class="comp-card-desc">Search, summarize, compare tech</div></div>
-        <div class="comp-card" onclick="quickSend('Make a 30-day DSA study plan')"><div class="comp-card-title">🗓 PLANNER</div><div class="comp-card-desc">Study plans, goals, schedules</div></div>
-      </div>
-      <div class="suggestions">
-        <button class="suggestion" onclick="quickSend('Explain time complexity with examples')">Time complexity</button>
-        <button class="suggestion" onclick="quickSend('Debug this: NullPointerException in Java')">Debug Java error</button>
-        <button class="suggestion" onclick="quickSend('Quiz me on sorting algorithms')">Quiz me</button>
-        <button class="suggestion" onclick="quickSend('Compare Stack vs Queue')">Stack vs Queue</button>
-      </div>
+      <div class="welcome-name" id="welcome-name">${content.name}</div>
+      <div class="welcome-sub" id="welcome-sub">${content.sub}</div>
+      <div class="component-grid" id="component-grid">${cardsHtml}</div>
+      <div class="suggestions" id="suggestions">${suggestionsHtml}</div>
     </div>
     <div class="typing-indicator" id="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
 }
