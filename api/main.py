@@ -98,12 +98,12 @@ async def remove_session(session_id: str):
     delete_session(session_id)
     return {"status": "deleted"}
 
-# --- Run ---
-if __name__ == "__main__":
+    import os
     import uvicorn
+    port = int(os.getenv("PORT", 8001))
     print("=" * 40)
     print("EIRA API Server starting...")
-    print("Open: http://localhost:8001")
-    print("Docs: http://localhost:8001/docs")
+    print(f"Open: http://localhost:{port}")
+    print(f"Docs: http://localhost:{port}/docs")
     print("=" * 40)
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=port)
