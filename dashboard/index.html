@@ -262,7 +262,7 @@ textarea::placeholder{color:var(--muted);}
 <div class="toast" id="toast"></div>
 
 <script>
-const API = 'http://localhost:8001';
+const API = 'https://eira-backend-l77h.onrender.com';
 let history = [];
 let currentAgent = 'GENERAL';
 let isLoading = false;
@@ -501,8 +501,8 @@ async function sendMessage() {
 
   } catch(err) {
     document.getElementById('typing').classList.remove('visible');
-    showToast('EIRA offline — run: python api/main.py');
-    addMsg('eira', 'I seem to be offline. Start the API: `python api/main.py`', 'SYSTEM', '');
+    showToast('EIRA offline — check backend URL');
+    addMsg('eira', 'I seem to be offline. Please check the backend connection.', 'SYSTEM', '');
   }
   isLoading = false;
   document.getElementById('send-btn').disabled = false;
