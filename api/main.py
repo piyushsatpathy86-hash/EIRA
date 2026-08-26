@@ -2,9 +2,6 @@
 # EIRA — FastAPI Server (with Sessions)
 # ============================================================
 
-import sys
-sys.path.append("C:/EIRA")
-
 import uuid
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,7 +55,7 @@ async def chat(request: ChatRequest):
     response = chat_with_eira(request.message, request.history)
 
     # Messages save karo
-    save_message(session_id, "user", request.message, 
+    save_message(session_id, "user", request.message,
                  routing["agent"], routing["model"])
     save_message(session_id, "assistant", response,
                  routing["agent"], routing["model"])
@@ -98,6 +95,11 @@ async def remove_session(session_id: str):
     delete_session(session_id)
     return {"status": "deleted"}
 
+
+# ============================================================
+# --- Server startup (TOP LEVEL — koi function ke andar nahi) ---
+# ============================================================
+if __name__ == "__main__":
     import os
     import uvicorn
     port = int(os.getenv("PORT", 8001))
