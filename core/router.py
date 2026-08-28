@@ -1,15 +1,15 @@
 # ============================================================
-# EIRA — Router (Intent Detection)
+# EIRA — Router (ML-based Semantic Intent Detection)
 # ============================================================
-# Jo bhi tu type kare → decide karta hai kaunsa agent handle karega
+# Uses sentence embeddings for semantic routing + keyword fallback
 
 import sys
+import os
 sys.path.append("C:/EIRA")
 from config.settings import MAIN_MODEL, CODER_MODEL, FAST_MODEL
 
-# --- Keyword map ---
+# --- Keyword map (fallback) ---
 AGENT_KEYWORDS = {
-
     "coding": [
         "code", "debug", "error", "function", "class", "write",
         "fix", "review", "implement", "program", "syntax", "compile",
@@ -19,7 +19,6 @@ AGENT_KEYWORDS = {
         "execute", "return", "variable", "object", "inheritance",
         "interface", "lambda", "api", "endpoint", "json", "parse"
     ],
-
     "study": [
         "explain", "teach", "concept", "understand", "what is",
         "how does", "dsa", "data structure", "linked list", "tree",
@@ -30,14 +29,12 @@ AGENT_KEYWORDS = {
         "doubt", "samjhao", "batao", "kya hai", "kaise kaam",
         "college", "semester", "subject", "exam", "syllabus"
     ],
-
     "notes": [
         "notes", "summarize", "summary", "youtube", "yt", "video",
         "transcript", "revision", "sheet", "key points", "important",
         "bullet", "highlight", "extract", "convert", "make notes",
         "note banao", "summarise", "brief", "tldr", "short"
     ],
-
     "research": [
         "research", "compare", "difference", "vs", "versus",
         "which is better", "pros cons", "technology", "framework",
@@ -46,7 +43,6 @@ AGENT_KEYWORDS = {
         "best way", "options", "alternatives", "recommend",
         "link", "playlist", "resource", "resources", "course", "course link"
     ],
-
     "planner": [
         "plan", "schedule", "goal", "week", "sprint", "track",
         "roadmap", "deadline", "timeline", "study plan", "project plan",
@@ -55,14 +51,12 @@ AGENT_KEYWORDS = {
         "sih", "hackathon", "internship", "preparation",
         "kal karna", "aaj karna", "next week"
     ],
-
     "desktop": [
         "wallpaper", "download", "open", "launch", "start",
         "screenshot", "file", "folder", "create file",
         "delete", "move", "copy", "rename", "remind me",
         "set reminder", "timer", "alarm", "search web"
     ],
-
     "camera": [
         "camera", "see me", "dekh", "look at me", "mood",
         "face", "posture", "photo le", "capture",
@@ -82,8 +76,66 @@ AGENT_MODELS = {
     "general":  MAIN_MODEL,
 }
 
+# --- Agent descriptions for semantic matching ---
+AGENT_DESCRIPTIONS = {
+    "coding": "Write code, debug errors, fix programs, implement functions, review code, solve programming problems",
+    "study": "Explain concepts, teach topics, prepare for exams, understand data structures, learn DSA, answer academic questions",
+    "notes": "Create notes, summarize content, extract key points from YouTube videos, make revision sheets",
+    "research": "Compare technologies, find information, research topics, search for resources, latest trends",
+    "planner": "Create study plans, schedule tasks, set goals, make roadmaps, organize daily routine, plan projects",
+    "desktop": "Control desktop, open apps, manage files, set reminders, take screenshots",
+    "camera": "Use camera, see user, detect mood, analyze face, check posture",
+}
 
-def detect_intent(message: str) -> dict:
+# --- Lazy-load sentence transformer (only when needed) ---
+_embedder = None
+_agent_embeddings = None
+
+def _get_embedder():
+    global _embedder
+    if _embedder is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+            _embedder = SentenceTransformer('all-MiniLM-L6-v2')
+            print("✅ Semantic router loaded (all-MiniLM-L6-v2)")
+        except Exception as e:
+            print(f"⚠️  Semantic router unavailable, using keyword fallback: {e}")
+            _embedder = False
+    return _embedder
+
+def _get_agent_embeddings():
+    global _agent_embeddings
+    if _agent_embeddings is None:
+        embedder = _get_embedder()
+        if embedder:
+            descriptions = list(AGENT_DESCRIPTIONS.values())
+            _agent_embeddings = embedder.encode(descriptions, convert_to_numpy=True)
+        else:
+            _agent_embeddings = False
+    return _agent_embeddings
+
+
+def _semantic_route(message: str) -> tuple:
+    """Returns (agent, confidence) using sentence embeddings"""
+    embedder = _get_embedder()
+    agent_embeddings = _get_agent_embeddings()
+    
+    if not embedder or agent_embeddings is False:
+        return None, 0
+    
+    from sentence_transformers import util
+    msg_embedding = embedder.encode([message], convert_to_numpy=True)
+    similarities = util.cos_sim(msg_embedding, agent_embeddings)[0]
+    
+    best_idx = int(similarities.argmax())
+    best_score = float(similarities[best_idx])
+    best_agent = list(AGENT_DESCRIPTIONS.keys())[best_idx]
+    
+    return best_agent, best_score
+
+
+def _keyword_route(message: str) -> tuple:
+    """Returns (agent, confidence) using keyword matching (fallback)"""
     message_lower = message.lower()
     scores = {agent: 0 for agent in AGENT_KEYWORDS}
 
@@ -94,14 +146,38 @@ def detect_intent(message: str) -> dict:
 
     best_agent = max(scores, key=scores.get)
     best_score = scores[best_agent]
-
+    
     if best_score == 0:
-        best_agent = "general"
+        return "general", 0
+    
+    return best_agent, best_score
 
+
+def detect_intent(message: str) -> dict:
+    """
+    Route message to the most appropriate agent.
+    Uses semantic embeddings first, falls back to keywords.
+    """
+    # Try semantic routing first
+    try:
+        agent, confidence = _semantic_route(message)
+        if agent and confidence > 0.35:  # threshold
+            return {
+                "agent":      agent,
+                "model":      AGENT_MODELS.get(agent, MAIN_MODEL),
+                "confidence": round(confidence, 3),
+                "method":     "semantic"
+            }
+    except Exception as e:
+        print(f"Semantic routing failed: {e}")
+
+    # Fallback to keyword routing
+    agent, confidence = _keyword_route(message)
     return {
-        "agent":      best_agent,
-        "model":      AGENT_MODELS.get(best_agent, MAIN_MODEL),
-        "confidence": best_score
+        "agent":      agent,
+        "model":      AGENT_MODELS.get(agent, MAIN_MODEL),
+        "confidence": confidence,
+        "method":     "keyword"
     }
 
 
@@ -116,12 +192,16 @@ if __name__ == "__main__":
         "change my wallpaper",
         "dekh main kya kar raha hoon",
         "hey what's up",
+        "mujhe DSA padhna hai",
+        "mera code crash ho raha hai",
     ]
-    print("=" * 50)
-    print("EIRA ROUTER — Test")
-    print("=" * 50)
+    print("=" * 60)
+    print("EIRA ROUTER — Test (Semantic + Keyword Fallback)")
+    print("=" * 60)
     for msg in tests:
         result = detect_intent(msg)
-        print(f"Input : {msg[:40]}")
-        print(f"Agent : {result['agent'].upper()} | Model: {result['model']}")
-        print("-" * 50)
+        method = result.get('method', 'keyword')
+        print(f"Input    : {msg}")
+        print(f"Agent    : {result['agent'].upper()} | Model: {result['model']}")
+        print(f"Method   : {method} | Confidence: {result['confidence']}")
+        print("-" * 60)
