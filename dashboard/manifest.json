@@ -1,0 +1,26 @@
+{
+  "name": "EIRA — Multi-Agent AI Assistant",
+  "short_name": "EIRA",
+  "description": "AI-powered assistant with 5 agents, memory, voice, and file upload",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluency/96/000000/brain.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "https://img.icons8.com/fluency/192/000000/brain.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://img.icons8.com/fluency/512/000000/brain.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -4,6 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>EIRA — Multi-Agent AI Assistant</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7c3aed">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -333,6 +335,16 @@ onAuthStateChanged(auth, async (user) => {
 </script>
 
 <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('Service Worker registered'))
+      .catch((err) => console.log('SW registration failed:', err));
+  });
+}
+</script>
+
+<script>
 const API = 'https://eira-backend-v2.onrender.com';
 let chatHistory = [], currentAgent = 'GENERAL', isLoading = false, currentSessionId = null;
 let pendingFileContent = null, pendingFileName = null;
@@ -400,7 +412,6 @@ const AGENT_CONTENT = {
   }
 };
 
-// Theme
 function setTheme(theme, btn) {
   document.body.setAttribute('data-theme', theme);
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
@@ -507,7 +518,6 @@ function clearCurrentChat() {
   else newChat();
 }
 
-// File upload
 async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -541,7 +551,6 @@ function clearFile() {
   document.getElementById('input').placeholder = 'Talk to EIRA...';
 }
 
-// Voice input (Web Speech API)
 let recognition = null;
 let isRecording = false;
 
@@ -601,10 +610,7 @@ function resetVoiceButton() {
   document.getElementById('input').placeholder = 'Talk to EIRA...';
 }
 
-// Global stop flag
 let globalStopSpeech = false;
-
-// Pre-load voices
 let availableVoices = [];
 function loadVoices() {
   availableVoices = window.speechSynthesis.getVoices();
@@ -612,7 +618,6 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-// Voice output (FINAL - stop fix with global variable)
 function speakText(btn) {
   let text = btn.getAttribute('data-text');
   if (!text || !('speechSynthesis' in window)) {
