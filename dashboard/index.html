@@ -615,7 +615,6 @@ function speakText(btn) {
     return;
   }
   
-  // Check if already speaking - then stop
   if (btn.classList.contains('speaking')) {
     window.speechSynthesis.cancel();
     btn.classList.remove('speaking');
@@ -623,7 +622,6 @@ function speakText(btn) {
     return;
   }
   
-  // Clean text for speech
   text = text.replace(/```[\s\S]*?```/g, ' code block ');
   text = text.replace(/`[^`]*`/g, ' ');
   text = text.replace(/https?:\/\/[^\s]+/g, ' link ');
@@ -638,45 +636,18 @@ function speakText(btn) {
   
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US';
+  utterance.lang = 'en-IN';
   utterance.rate = 1;
-  utterance.pitch = 1.5;
+  utterance.pitch = 1;
   
-  function setFemaleVoice() {
-    const voices = window.speechSynthesis.getVoices();
-    const priorityVoices = [
-      'Google US English Female',
-      'Microsoft Zira',
-      'Microsoft Aria',
-      'Microsoft Jenny',
-      'Samantha',
-      'Karen',
-      'Moira',
-      'Victoria',
-      'Female',
-      'Google UK English Female',
-      'Microsoft Heera',
-      'Microsoft Kalpana'
-    ];
-    
-    for (const name of priorityVoices) {
-      const found = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
-      if (found) return found;
-    }
-    
-    const anyFemale = voices.find(v => v.name.toLowerCase().includes('female'));
-    if (anyFemale) return anyFemale;
-    
-    const notMale = voices.find(v => 
-      !v.name.toLowerCase().includes('male') && 
-      !v.name.toLowerCase().includes('david') &&
-      !v.name.toLowerCase().includes('mark') &&
-      !v.name.toLowerCase().includes('james')
-    );
-    return notMale || voices[0];
-  }
+  const voices = window.speechSynthesis.getVoices();
   
-  const femaleVoice = setFemaleVoice();
+  const femaleVoice = 
+    voices.find(v => v.name === 'Microsoft Heera - English (India)') ||
+    voices.find(v => v.name === 'Microsoft Zira - English (United States)') ||
+    voices.find(v => v.name === 'Google UK English Female') ||
+    voices.find(v => v.name.includes('Female'));
+  
   if (femaleVoice) utterance.voice = femaleVoice;
   
   window.speechSynthesis.speak(utterance);
