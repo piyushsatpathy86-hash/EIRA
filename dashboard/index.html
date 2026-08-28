@@ -171,7 +171,32 @@ textarea::placeholder{color:var(--muted);}
 .toast.info{border-color:var(--accent2);color:var(--accent);}
 .toast.success{border-color:#14532d;color:#86efac;}
 .empty-sessions{font-size:11px;color:var(--muted);padding:12px 8px;text-align:center;}
-@media(max-width:700px){.app{grid-template-columns:1fr;}.sidebar{display:none;}}
+
+/* MOBILE INTERFACE */
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99;}
+.sidebar-backdrop.visible{display:block;}
+.mobile-header{display:none;align-items:center;gap:10px;padding:10px 15px;background:var(--surface);border-bottom:1px solid var(--border);cursor:pointer;flex-shrink:0;}
+.mobile-header .hamburger{font-size:22px;color:var(--accent);background:none;border:none;cursor:pointer;}
+.mobile-header .header-title{font-family:var(--font-mono);color:var(--accent);font-size:16px;font-weight:600;letter-spacing:2px;}
+
+@media(max-width:700px){
+  .app{grid-template-columns:1fr;}
+  .sidebar{position:fixed;left:-280px;top:0;bottom:0;width:280px;z-index:100;transition:left .3s ease;box-shadow:4px 0 30px rgba(0,0,0,0.5);}
+  .sidebar.open{left:0;}
+  .mobile-header{display:flex;}
+  .topbar{display:none;}
+  .messages{padding:15px;gap:10px;}
+  .msg{max-width:90%;}
+  .bubble{font-size:13px;padding:10px 14px;}
+  .input-area{padding:10px 12px 15px;}
+  .input-wrap{padding:7px 10px;gap:6px;}
+  textarea{font-size:13px;}
+  .upload-btn,.voice-btn,.send-btn{height:38px;width:38px;font-size:16px;}
+  .suggestions{gap:5px;max-width:100%;}
+  .suggestion{font-size:11px;padding:6px 10px;}
+  .component-grid{grid-template-columns:1fr;gap:6px;max-width:100%;}
+  .welcome-name{font-size:32px;}
+}
 </style>
 </head>
 <body data-theme="eira-dark">
@@ -187,7 +212,7 @@ textarea::placeholder{color:var(--muted);}
 </div>
 
 <div class="app">
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
       <div class="logo">EIRA<span><span class="status-dot"></span>online</span></div>
       <div class="user-info" id="user-info" style="display:none">
@@ -222,11 +247,18 @@ textarea::placeholder{color:var(--muted);}
     </div>
   </aside>
 
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
   <main class="main">
+    <div class="mobile-header" onclick="toggleSidebar()">
+      <button class="hamburger">☰</button>
+      <span class="header-title">EIRA</span>
+    </div>
     <div class="topbar">
       <div class="topbar-title">// EIRA</div>
       <div class="topbar-agent" id="topbar-agent">GENERAL</div>
       <div class="topbar-right">
+        <button class="clear-btn" onclick="exportChat()" title="Download chat">📥 Export</button>
         <button class="clear-btn" onclick="clearCurrentChat()">🗑 clear</button>
       </div>
     </div>
@@ -427,6 +459,16 @@ if (saved) {
   });
 }
 
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-backdrop').classList.toggle('visible');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('visible');
+}
+
 function _applyAgentUI(agent) {
   currentAgent = agent;
   document.querySelectorAll('.agent-btn').forEach(b => b.classList.remove('active'));
@@ -439,6 +481,7 @@ function _applyAgentUI(agent) {
 function setAgent(agent, btn) {
   _applyAgentUI(agent);
   window.history.pushState({type:'agent', agent, sessionId:currentSessionId}, '');
+  closeSidebar();
 }
 
 async function getAuthHeaders() {
@@ -480,7 +523,7 @@ async function _applySessionLoad(sessionId) {
     const messages = await res.json();
     const msgs = document.getElementById('messages');
     msgs.innerHTML = `<div class="typing-indicator" id="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
-    messages.forEach(m => { addMsg(m.role === 'user' ? 'user' : 'eira', m.content, m.agent, m.model, m.timestamp); chatHistory.push({role:m.role, content:m.content}); });
+    messages.forEach(m => { addMsg(m.role === 'user' ? 'user' : 'eira', m.content, m.agent, m.model, m.timestamp); chatHistory.push({role:m.role, content:m.content, agent:m.agent}); });
     loadSessions();
   } catch(e) { showToast('Session load error'); }
 }
@@ -488,6 +531,7 @@ async function _applySessionLoad(sessionId) {
 async function loadSession(sessionId) {
   await _applySessionLoad(sessionId);
   window.history.pushState({type:'session', sessionId, agent:currentAgent}, '');
+  closeSidebar();
 }
 
 async function deleteSession(e, sessionId) {
@@ -511,11 +555,44 @@ function _applyNewChat() {
 function newChat() {
   _applyNewChat();
   window.history.pushState({type:'newchat', agent:currentAgent, sessionId:null}, '');
+  closeSidebar();
 }
 
 function clearCurrentChat() {
   if (currentSessionId) deleteSession({stopPropagation:()=>{}}, currentSessionId);
   else newChat();
+}
+
+function exportChat() {
+  let markdown = '# EIRA Conversation\n\n';
+  markdown += 'Date: ' + new Date().toLocaleString() + '\n\n';
+  markdown += '---\n\n';
+
+  if (chatHistory.length === 0) {
+    showToast('No conversation to export', 'info');
+    return;
+  }
+
+  chatHistory.forEach((msg) => {
+    if (msg.role === 'user') {
+      markdown += '**You:** ' + msg.content + '\n\n';
+    } else if (msg.role === 'assistant') {
+      const agent = msg.agent || 'general';
+      markdown += '**EIRA (' + agent + '):** ' + msg.content + '\n\n';
+    }
+  });
+
+  const blob = new Blob([markdown], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'eira-chat-' + new Date().toISOString().slice(0,19).replace(/[:-]/g, '') + '.md';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast('Chat exported! 📥', 'success');
 }
 
 async function handleFileUpload(event) {
@@ -814,7 +891,7 @@ async function sendMessage() {
     document.getElementById('typing').classList.remove('visible');
     if (!currentSessionId) { currentSessionId = data.session_id; setTimeout(loadSessions, 500); }
     addMsg('eira', data.response, data.agent, data.model);
-    chatHistory.push({role:'assistant', content:data.response});
+    chatHistory.push({role:'assistant', content:data.response, agent:data.agent});
     if (data.model) document.getElementById('current-model').textContent = data.model;
     setTimeout(loadSessions, 300);
   } catch(err) {
