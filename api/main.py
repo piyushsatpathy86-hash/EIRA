@@ -1,13 +1,15 @@
 # ============================================================
-# EIRA — FastAPI Server (with Firebase Auth + Per-User Sessions)
+# EIRA — FastAPI Server (with Firebase Auth + Rate Limiting)
 # ============================================================
 
 import sys
 import os
 import uuid
 import tempfile
+from datetime import datetime, timedelta
 from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from core.eira import chat_with_eira
 from core.router import detect_intent
@@ -35,12 +37,45 @@ app.add_middleware(
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
+# ============================================================
+# Simple In-Memory Rate Limiter
+# ============================================================
+request_log = {}  # {ip: [timestamps]}
+RATE_LIMIT = 60  # max requests per minute
+RATE_WINDOW = 60  # seconds
 
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # Rate limit sirf API endpoints pe apply karo (docs/root pe nahi)
+    if request.url.path.startswith("/chat") or request.url.path.startswith("/sessions") or request.url.path.startswith("/upload"):
+        user_ip = request.client.host if request.client else "unknown"
+        now = datetime.now()
+
+        # Purane entries clean karo
+        if user_ip in request_log:
+            request_log[user_ip] = [t for t in request_log[user_ip]
+                                    if now - t < timedelta(seconds=RATE_WINDOW)]
+        else:
+            request_log[user_ip] = []
+
+        # Limit check
+        if len(request_log[user_ip]) >= RATE_LIMIT:
+            return JSONResponse(
+                status_code=429,
+                content={"error": "Too many requests. Slow down! 🐢"}
+            )
+
+        request_log[user_ip].append(now)
+
+    response = await call_next(request)
+    return response
+
+
+# ============================================================
+# Firebase Auth Helpers
+# ============================================================
 def verify_token_and_get_user(request: Request) -> str | None:
-    """
-    Firebase ID token verify karke user_id return karo.
-    Agar token missing/invalid ho → None return karo.
-    """
+    """Firebase ID token verify karke user_id return karo."""
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         return None
@@ -66,6 +101,9 @@ def verify_token_and_get_user(request: Request) -> str | None:
         return None
 
 
+# ============================================================
+# Pydantic Models
+# ============================================================
 class ChatRequest(BaseModel):
     message: str
     history: list = []
@@ -81,17 +119,23 @@ class SessionRequest(BaseModel):
     title: str = "New Chat"
 
 
+# ============================================================
+# Root
+# ============================================================
 @app.get("/")
 async def root():
     return {"status": "EIRA is online! 🔥"}
 
 
+# ============================================================
+# Chat Endpoint
+# ============================================================
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: Request, body: ChatRequest):
     # 🔐 Auth check
     user_id = verify_token_and_get_user(request)
     if not user_id:
-        return {"error": "Login required"}
+        return JSONResponse(status_code=401, content={"error": "Login required"})
 
     session_id = body.session_id
     if not session_id:
@@ -120,12 +164,15 @@ async def chat(request: Request, body: ChatRequest):
     )
 
 
+# ============================================================
+# Upload Endpoint
+# ============================================================
 @app.post("/upload")
 async def upload_file(request: Request, file: UploadFile = File(...)):
     # 🔐 Auth check
     user_id = verify_token_and_get_user(request)
     if not user_id:
-        return {"error": "Login required"}
+        return JSONResponse(status_code=401, content={"error": "Login required"})
 
     contents = await file.read()
 
@@ -159,41 +206,37 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     }
 
 
+# ============================================================
+# Session Endpoints
+# ============================================================
 @app.get("/sessions")
 async def list_sessions(request: Request):
-    # 🔐 Auth check
     user_id = verify_token_and_get_user(request)
     if not user_id:
-        return {"error": "Login required"}
+        return JSONResponse(status_code=401, content={"error": "Login required"})
     return get_sessions(user_id)
-
 
 @app.get("/sessions/{session_id}/messages")
 async def session_messages(session_id: str, request: Request):
-    # 🔐 Auth check
     user_id = verify_token_and_get_user(request)
     if not user_id:
-        return {"error": "Login required"}
+        return JSONResponse(status_code=401, content={"error": "Login required"})
     return get_messages(session_id)
-
 
 @app.post("/sessions")
 async def new_session(request: Request, req: SessionRequest):
-    # 🔐 Auth check
     user_id = verify_token_and_get_user(request)
     if not user_id:
-        return {"error": "Login required"}
+        return JSONResponse(status_code=401, content={"error": "Login required"})
     session_id = str(uuid.uuid4())
     create_session(session_id, req.title, user_id)
     return {"session_id": session_id, "title": req.title}
 
-
 @app.delete("/sessions/{session_id}")
 async def remove_session(session_id: str, request: Request):
-    # 🔐 Auth check
     user_id = verify_token_and_get_user(request)
     if not user_id:
-        return {"error": "Login required"}
+        return JSONResponse(status_code=401, content={"error": "Login required"})
     delete_session(session_id, user_id)
     return {"status": "deleted"}
 
