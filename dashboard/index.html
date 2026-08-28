@@ -158,6 +158,7 @@ textarea::placeholder{color:var(--muted);}
 .upload-btn,.voice-btn{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);cursor:pointer;font-size:15px;height:34px;width:34px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
 .upload-btn:hover,.voice-btn:hover{border-color:var(--accent);color:var(--accent);}
 .upload-btn.has-file{border-color:var(--accent2);color:var(--accent);}
+.voice-btn.recording{border-color:#ef4444;color:#ef4444;animation:pulse 1s infinite;}
 .send-btn{background:var(--accent2);border:none;border-radius:var(--radius-sm);color:#fff;cursor:pointer;font-size:16px;height:34px;width:34px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
 .send-btn:hover{background:var(--accent);transform:scale(1.05);}
 .send-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
@@ -261,11 +262,11 @@ textarea::placeholder{color:var(--muted);}
         <button class="upload-btn" id="upload-btn" onclick="document.getElementById('file-input').click()" title="Upload file">📎</button>
         <textarea id="input" placeholder="Talk to EIRA..." rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this);updateCount(this)"></textarea>
-        <button class="voice-btn" onclick="showToast('Voice — coming soon!','info')" title="Voice input">🎙</button>
+        <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Voice input">🎙</button>
         <button class="send-btn" id="send-btn" onclick="sendMessage()">↑</button>
       </div>
       <div class="input-footer">
-        <div class="input-hint">Enter — send · Shift+Enter — new line · 📎 upload file</div>
+        <div class="input-hint">Enter — send · Shift+Enter — new line · 📎 upload · 🎙 voice</div>
         <div class="char-count" id="char-count">0</div>
       </div>
     </div>
@@ -538,6 +539,68 @@ function clearFile() {
   pendingFileName = null;
   document.getElementById('file-badge').classList.remove('visible');
   document.getElementById('upload-btn').classList.remove('has-file');
+  document.getElementById('input').placeholder = 'Talk to EIRA...';
+}
+
+// Voice input (Web Speech API)
+let recognition = null;
+let isRecording = false;
+
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Voice not supported in this browser. Use Chrome.');
+    return;
+  }
+
+  if (isRecording) {
+    recognition.stop();
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-IN';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    document.getElementById('voice-btn').classList.add('recording');
+    document.getElementById('voice-btn').textContent = '🔴';
+    document.getElementById('input').placeholder = 'Listening...';
+    showToast('Listening... Speak now!', 'info');
+  };
+
+  recognition.onresult = (event) => {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        const input = document.getElementById('input');
+        input.value = transcript;
+        updateCount(input);
+        autoResize(input);
+      }
+    }
+  };
+
+  recognition.onerror = (event) => {
+    showToast('Voice error: ' + event.error);
+    resetVoiceButton();
+  };
+
+  recognition.onend = () => {
+    resetVoiceButton();
+  };
+
+  recognition.start();
+}
+
+function resetVoiceButton() {
+  isRecording = false;
+  const btn = document.getElementById('voice-btn');
+  btn.classList.remove('recording');
+  btn.textContent = '🎙';
   document.getElementById('input').placeholder = 'Talk to EIRA...';
 }
 
