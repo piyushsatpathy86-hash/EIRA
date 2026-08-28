@@ -51,36 +51,15 @@
 | **Monitoring** | UptimeRobot (cold-start prevention) |
 
 ## 🏗 Architecture
-┌─────────────────────────────────────────────┐
-│ Frontend (Vercel) │
-│ HTML/CSS/JS + Firebase Auth │
-└──────────────────┬──────────────────────────┘
-│ HTTPS (Bearer Token)
-┌──────────────────▼──────────────────────────┐
-│ Backend (Render) │
-│ FastAPI Server │
-│ ┌────────────────────────────────────┐ │
-│ │ Intent Router │ │
-│ │ (Keyword-based → Agent Selection) │ │
-│ └──────────┬─────────────────────────┘ │
-│ │ │
-│ ┌──────────▼─────────────────────────┐ │
-│ │ 5 Agents │ │
-│ │ Study │ Coding │ Research │ │
-│ │ Notes │ Planner │ │
-│ └──────────┬─────────────────────────┘ │
-│ │ │
-│ ┌──────────▼─────────────────────────┐ │
-│ │ Memory & Storage │ │
-│ │ ChromaDB (RAG) + SQLite (sessions)│ │
-│ └────────────────────────────────────┘ │
-│ │ │
-│ ┌──────────▼─────────────────────────┐ │
-│ │ External Services │ │
-│ │ Groq API │ Tavily │ DuckDuckGo │ │
-│ └────────────────────────────────────┘ │
-└─────────────────────────────────────────────┘
 
+```mermaid
+graph TD
+    A[Frontend - Vercel<br/>HTML/CSS/JS + Firebase Auth] -->|HTTPS Bearer Token| B[Backend - Render<br/>FastAPI Server]
+    B --> C[Intent Router<br/>Keyword-based]
+    C --> D[5 Agents<br/>Study, Coding, Research, Notes, Planner]
+    D --> E[Memory & Storage<br/>ChromaDB RAG + SQLite]
+    B --> F[External Services<br/>Groq API, Tavily, DuckDuckGo]
+```
 
 ## 🧠 How Memory Works (RAG)
 
@@ -99,13 +78,13 @@ def get_relevant_memory(query: str, n_results: int = 3) -> str:
     )
     return results["documents"][0]
 
-🚀 Quick Start
+## 🚀 Quick Start
 Backend (Render)
 uvicorn api.main:app --host 0.0.0.0 --port $PORT
 Frontend (Vercel)
 Set Root Directory to dashboard, deploy index.html.
 
-📝 License
+## 📝 License
 MIT License — free to use and learn from.
 
 Built with 🧠 by Piyush Satpathy
