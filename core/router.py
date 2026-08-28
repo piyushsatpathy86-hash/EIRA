@@ -1,15 +1,13 @@
 # ============================================================
-# EIRA — Router (ML-based Semantic Intent Detection)
+# EIRA — Router (Keyword-based Intent Detection)
 # ============================================================
-# Uses sentence embeddings for semantic routing + keyword fallback
-# Safe version: CPU device, graceful fallback
+# Stable version - works on Render free tier without heavy models
 
 import sys
-import os
 sys.path.append("C:/EIRA")
 from config.settings import MAIN_MODEL, CODER_MODEL, FAST_MODEL
 
-# --- Keyword map (fallback) ---
+# --- Keyword map ---
 AGENT_KEYWORDS = {
     "coding": [
         "code", "debug", "error", "function", "class", "write",
@@ -77,78 +75,8 @@ AGENT_MODELS = {
     "general":  MAIN_MODEL,
 }
 
-# --- Agent descriptions for semantic matching ---
-AGENT_DESCRIPTIONS = {
-    "coding": "Write code, debug errors, fix programs, implement functions, review code, solve programming problems",
-    "study": "Explain concepts, teach topics, prepare for exams, understand data structures, learn DSA, answer academic questions",
-    "notes": "Create notes, summarize content, extract key points from YouTube videos, make revision sheets",
-    "research": "Compare technologies, find information, research topics, search for resources, latest trends",
-    "planner": "Create study plans, schedule tasks, set goals, make roadmaps, organize daily routine, plan projects",
-    "desktop": "Control desktop, open apps, manage files, set reminders, take screenshots",
-    "camera": "Use camera, see user, detect mood, analyze face, check posture",
-}
 
-# --- Lazy-load sentence transformer (only when needed) ---
-_embedder = None
-_agent_embeddings = None
-_embedder_failed = False
-
-def _get_embedder():
-    global _embedder, _embedder_failed
-    if _embedder is not None or _embedder_failed:
-        return _embedder
-    try:
-        from sentence_transformers import SentenceTransformer
-        _embedder = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
-        print("✅ Semantic router loaded (all-MiniLM-L6-v2)")
-    except Exception as e:
-        print(f"⚠️  Semantic router unavailable, using keyword fallback: {e}")
-        _embedder = False
-        _embedder_failed = True
-    return _embedder
-
-def _get_agent_embeddings():
-    global _agent_embeddings
-    if _agent_embeddings is not None:
-        return _agent_embeddings
-    embedder = _get_embedder()
-    if embedder:
-        try:
-            descriptions = list(AGENT_DESCRIPTIONS.values())
-            _agent_embeddings = embedder.encode(descriptions, convert_to_numpy=True)
-        except Exception as e:
-            print(f"⚠️  Embedding generation failed: {e}")
-            _agent_embeddings = False
-    else:
-        _agent_embeddings = False
-    return _agent_embeddings
-
-
-def _semantic_route(message: str) -> tuple:
-    """Returns (agent, confidence) using sentence embeddings"""
-    embedder = _get_embedder()
-    agent_embeddings = _get_agent_embeddings()
-    
-    if not embedder or agent_embeddings is False:
-        return None, 0
-    
-    try:
-        from sentence_transformers import util
-        msg_embedding = embedder.encode([message], convert_to_numpy=True)
-        similarities = util.cos_sim(msg_embedding, agent_embeddings)[0]
-        
-        best_idx = int(similarities.argmax())
-        best_score = float(similarities[best_idx])
-        best_agent = list(AGENT_DESCRIPTIONS.keys())[best_idx]
-        
-        return best_agent, best_score
-    except Exception as e:
-        print(f"Semantic routing error: {e}")
-        return None, 0
-
-
-def _keyword_route(message: str) -> tuple:
-    """Returns (agent, confidence) using keyword matching (fallback)"""
+def detect_intent(message: str) -> dict:
     message_lower = message.lower()
     scores = {agent: 0 for agent in AGENT_KEYWORDS}
 
@@ -159,42 +87,17 @@ def _keyword_route(message: str) -> tuple:
 
     best_agent = max(scores, key=scores.get)
     best_score = scores[best_agent]
-    
+
     if best_score == 0:
-        return "general", 0
-    
-    return best_agent, best_score
+        best_agent = "general"
 
-
-def detect_intent(message: str) -> dict:
-    """
-    Route message to the most appropriate agent.
-    Uses semantic embeddings first, falls back to keywords.
-    """
-    # Try semantic routing first (graceful fallback)
-    try:
-        agent, confidence = _semantic_route(message)
-        if agent and confidence > 0.35:
-            return {
-                "agent":      agent,
-                "model":      AGENT_MODELS.get(agent, MAIN_MODEL),
-                "confidence": round(confidence, 3),
-                "method":     "semantic"
-            }
-    except Exception as e:
-        print(f"Semantic routing failed: {e}")
-
-    # Fallback to keyword routing
-    agent, confidence = _keyword_route(message)
     return {
-        "agent":      agent,
-        "model":      AGENT_MODELS.get(agent, MAIN_MODEL),
-        "confidence": confidence,
-        "method":     "keyword"
+        "agent":      best_agent,
+        "model":      AGENT_MODELS.get(best_agent, MAIN_MODEL),
+        "confidence": best_score
     }
 
 
-# --- Test karne ke liye ---
 if __name__ == "__main__":
     tests = [
         "explain binary search tree",
@@ -205,16 +108,12 @@ if __name__ == "__main__":
         "change my wallpaper",
         "dekh main kya kar raha hoon",
         "hey what's up",
-        "mujhe DSA padhna hai",
-        "mera code crash ho raha hai",
     ]
-    print("=" * 60)
-    print("EIRA ROUTER — Test (Semantic + Keyword Fallback)")
-    print("=" * 60)
+    print("=" * 50)
+    print("EIRA ROUTER — Test")
+    print("=" * 50)
     for msg in tests:
         result = detect_intent(msg)
-        method = result.get('method', 'keyword')
-        print(f"Input    : {msg}")
-        print(f"Agent    : {result['agent'].upper()} | Model: {result['model']}")
-        print(f"Method   : {method} | Confidence: {result['confidence']}")
-        print("-" * 60)
+        print(f"Input : {msg[:40]}")
+        print(f"Agent : {result['agent'].upper()} | Model: {result['model']}")
+        print("-" * 50)
