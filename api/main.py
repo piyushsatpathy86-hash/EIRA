@@ -3,8 +3,6 @@
 # ============================================================
 
 import sys
-sys.path.append("C:/EIRA")
-
 import os
 import uuid
 import tempfile
@@ -19,11 +17,18 @@ from tools.session_tool import (
 )
 from tools.file_tool import process_uploaded_file
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 app = FastAPI(title="EIRA API", version="2.0")
 
+# CORS — sirf apna frontend allow karo
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://eira-coral.vercel.app",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500"
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -31,27 +36,35 @@ app.add_middleware(
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
-async def get_user_id(request: Request) -> str:
+def verify_token_and_get_user(request: Request) -> str | None:
+    """
+    Firebase ID token verify karke user_id return karo.
+    Agar token missing/invalid ho → None return karo.
+    """
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
-        return "anonymous"
+        return None
+
     token = auth.split("Bearer ")[1]
     try:
         import firebase_admin
         from firebase_admin import auth as fb_auth, credentials
+        import json
+
         if not firebase_admin._apps:
             cred_json = os.getenv("FIREBASE_CREDENTIALS")
-            if cred_json:
-                import json
-                cred = credentials.Certificate(json.loads(cred_json))
-                firebase_admin.initialize_app(cred)
-            else:
-                return "anonymous"
+            if not cred_json:
+                print("Firebase credentials missing")
+                return None
+            cred = credentials.Certificate(json.loads(cred_json))
+            firebase_admin.initialize_app(cred)
+
         decoded = fb_auth.verify_id_token(token)
         return decoded["uid"]
     except Exception as e:
         print(f"Auth error: {e}")
-        return "anonymous"
+        return None
+
 
 class ChatRequest(BaseModel):
     message: str
@@ -67,13 +80,19 @@ class ChatResponse(BaseModel):
 class SessionRequest(BaseModel):
     title: str = "New Chat"
 
+
 @app.get("/")
 async def root():
     return {"status": "EIRA is online! 🔥"}
 
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: Request, body: ChatRequest):
-    user_id = await get_user_id(request)
+    # 🔐 Auth check
+    user_id = verify_token_and_get_user(request)
+    if not user_id:
+        return {"error": "Login required"}
+
     session_id = body.session_id
     if not session_id:
         session_id = str(uuid.uuid4())
@@ -100,13 +119,14 @@ async def chat(request: Request, body: ChatRequest):
         session_id=session_id
     )
 
+
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    """
-    Accepts a file, extracts its content (text or vision description),
-    and returns it. The frontend attaches this content to the next
-    chat message it sends — the file itself is never stored long-term.
-    """
+async def upload_file(request: Request, file: UploadFile = File(...)):
+    # 🔐 Auth check
+    user_id = verify_token_and_get_user(request)
+    if not user_id:
+        return {"error": "Login required"}
+
     contents = await file.read()
 
     if len(contents) > MAX_FILE_SIZE:
@@ -135,30 +155,48 @@ async def upload_file(file: UploadFile = File(...)):
     return {
         "filename": file.filename,
         "type": result["type"],
-        "content": result["content"][:8000]  # cap to keep prompts reasonable
+        "content": result["content"][:8000]
     }
+
 
 @app.get("/sessions")
 async def list_sessions(request: Request):
-    user_id = await get_user_id(request)
+    # 🔐 Auth check
+    user_id = verify_token_and_get_user(request)
+    if not user_id:
+        return {"error": "Login required"}
     return get_sessions(user_id)
 
+
 @app.get("/sessions/{session_id}/messages")
-async def session_messages(session_id: str):
+async def session_messages(session_id: str, request: Request):
+    # 🔐 Auth check
+    user_id = verify_token_and_get_user(request)
+    if not user_id:
+        return {"error": "Login required"}
     return get_messages(session_id)
+
 
 @app.post("/sessions")
 async def new_session(request: Request, req: SessionRequest):
-    user_id = await get_user_id(request)
+    # 🔐 Auth check
+    user_id = verify_token_and_get_user(request)
+    if not user_id:
+        return {"error": "Login required"}
     session_id = str(uuid.uuid4())
     create_session(session_id, req.title, user_id)
     return {"session_id": session_id, "title": req.title}
 
+
 @app.delete("/sessions/{session_id}")
 async def remove_session(session_id: str, request: Request):
-    user_id = await get_user_id(request)
+    # 🔐 Auth check
+    user_id = verify_token_and_get_user(request)
+    if not user_id:
+        return {"error": "Login required"}
     delete_session(session_id, user_id)
     return {"status": "deleted"}
+
 
 if __name__ == "__main__":
     import uvicorn
