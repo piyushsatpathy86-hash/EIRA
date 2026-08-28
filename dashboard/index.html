@@ -609,7 +609,7 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-// Voice output (Speech Synthesis - FEMALE + SENTENCE PAUSES + NO EMOJI)
+// Voice output (FINAL - stop fix, female voice, sentence pauses, no emoji)
 function speakText(btn) {
   let text = btn.getAttribute('data-text');
   if (!text || !('speechSynthesis' in window)) {
@@ -624,7 +624,6 @@ function speakText(btn) {
     return;
   }
   
-  // Clean text - remove code blocks, URLs, emojis, special chars
   text = text.replace(/```[\s\S]*?```/g, ' code block ');
   text = text.replace(/`[^`]*`/g, ' ');
   text = text.replace(/https?:\/\/[^\s]+/g, ' link ');
@@ -646,15 +645,15 @@ function speakText(btn) {
     voices.find(v => v.name.toLowerCase().includes('google uk english female')) ||
     voices.find(v => v.name.toLowerCase().includes('female'));
   
-  // Split into sentences for natural pauses
   const sentences = text.split(/(?<=[.!?])\s+/);
   let currentIndex = 0;
+  let isStopped = false;
   
   btn.classList.add('speaking');
   btn.textContent = '⏹';
   
   function speakNextSentence() {
-    if (currentIndex >= sentences.length) {
+    if (isStopped || currentIndex >= sentences.length) {
       btn.classList.remove('speaking');
       btn.textContent = '🔊';
       return;
@@ -689,6 +688,16 @@ function speakText(btn) {
     
     window.speechSynthesis.speak(sentUtterance);
   }
+  
+  // Override stop
+  const originalStop = btn.onclick;
+  btn.onclick = () => {
+    isStopped = true;
+    window.speechSynthesis.cancel();
+    btn.classList.remove('speaking');
+    btn.textContent = '🔊';
+    btn.onclick = originalStop;
+  };
   
   speakNextSentence();
 }
