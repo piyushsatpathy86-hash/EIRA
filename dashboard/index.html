@@ -202,7 +202,7 @@ textarea::placeholder{color:var(--muted);}
     <div class="sidebar-bottom">
       <div class="sidebar-label-bottom">Agents</div>
       <div class="agents-grid">
-        <button class="agent-btn active" data-agent="GENERAL" onclick="setAgent('GENERAL',this)"><span class="agent-icon">✦</span>General</button>
+        <button class="agent-btn active" data-agent="GENERAL" onclick="setAgent('GENERAL',this)"><span class="agent-icon">😎</span>General</button>
         <button class="agent-btn" data-agent="STUDY" onclick="setAgent('STUDY',this)"><span class="agent-icon">📚</span>Study</button>
         <button class="agent-btn" data-agent="CODING" onclick="setAgent('CODING',this)"><span class="agent-icon">💻</span>Coding</button>
         <button class="agent-btn" data-agent="RESEARCH" onclick="setAgent('RESEARCH',this)"><span class="agent-icon">🔍</span>Research</button>
@@ -333,7 +333,7 @@ onAuthStateChanged(auth, async (user) => {
 </script>
 
 <script>
-const API = 'https://eira-backend-l77h.onrender.com';
+const API = 'eira-backend-v2.onrender.com';
 let chatHistory = [], currentAgent = 'GENERAL', isLoading = false, currentSessionId = null;
 let pendingFileContent = null, pendingFileName = null;
 
