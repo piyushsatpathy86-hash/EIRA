@@ -7,7 +7,8 @@ sys.path.append("C:/EIRA")
 
 import os
 import uuid
-from fastapi import FastAPI, Request
+import tempfile
+from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from core.eira import chat_with_eira
@@ -16,6 +17,7 @@ from tools.session_tool import (
     create_session, save_message, get_sessions,
     get_messages, update_session_title, delete_session
 )
+from tools.file_tool import process_uploaded_file
 
 app = FastAPI(title="EIRA API", version="2.0")
 
@@ -25,6 +27,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+
 
 async def get_user_id(request: Request) -> str:
     auth = request.headers.get("Authorization", "")
@@ -94,6 +99,44 @@ async def chat(request: Request, body: ChatRequest):
         model=routing["model"],
         session_id=session_id
     )
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """
+    Accepts a file, extracts its content (text or vision description),
+    and returns it. The frontend attaches this content to the next
+    chat message it sends — the file itself is never stored long-term.
+    """
+    contents = await file.read()
+
+    if len(contents) > MAX_FILE_SIZE:
+        return {"error": "File too large. Max size is 10MB."}
+
+    suffix = os.path.splitext(file.filename)[1]
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(contents)
+            tmp_path = tmp.name
+
+        result = process_uploaded_file(tmp_path, file.filename)
+
+    except Exception as e:
+        return {"error": f"Could not process file: {str(e)}"}
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+    if result["type"] == "unsupported":
+        return {"error": "That file type isn't supported yet."}
+    if result["type"] == "error":
+        return {"error": f"Could not read file: {result['content']}"}
+
+    return {
+        "filename": file.filename,
+        "type": result["type"],
+        "content": result["content"][:8000]  # cap to keep prompts reasonable
+    }
 
 @app.get("/sessions")
 async def list_sessions(request: Request):
