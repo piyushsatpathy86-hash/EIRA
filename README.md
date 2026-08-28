@@ -1,6 +1,6 @@
 # ✦ EIRA — Enhanced Intelligent Reasoning Assistant
 
-> A local AI Operating System with multi-agent architecture, persistent memory, and real-time web search.
+> A local AI Assistant with multi-agent architecture, persistent memory, and real-time web search.
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
@@ -76,6 +76,7 @@ EIRA/
 ├── data/                  # gitignored — memory, sessions, notes
 ├── tools/
 │   ├── desktop_control.py
+|   ├── files_tool.py
 │   ├── memory_tool.py
 │   ├── search_tool.py
 │   ├── session_tool.py
@@ -167,9 +168,9 @@ EIRA replies
 - [x] Web search integration
 - [x] Session management
 - [x] Custom Web UI with themes
-- [ ] Voice input (Whisper)
-- [ ] Text-to-speech (Coqui TTS)
-- [ ] User authentication
+- [x] Voice input (Whisper)
+- [x] Text-to-speech (Coqui TTS)
+- [x] User authentication
 - [ ] Cloud deployment
 - [ ] LangChain integration
 
