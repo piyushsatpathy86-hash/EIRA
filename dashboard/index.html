@@ -635,11 +635,10 @@ function speakText(btn) {
     showToast('Nothing to speak');
     return;
   }
-  
-  window.speechSynthesis.cancel();
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'en-US';
-  utterance.rate = 1;
+  utterance.rate = 1.2;
   utterance.pitch = 1.5;
   
   const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
