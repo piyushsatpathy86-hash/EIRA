@@ -125,6 +125,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .msg-meta{font-size:10px;color:var(--muted);font-family:var(--font-mono);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .agent-tag{background:var(--tag-bg);color:var(--tag-color);padding:2px 7px;border-radius:20px;font-size:9px;letter-spacing:1px;}
 .model-tag{font-size:9px;color:var(--muted);opacity:.7;}
+.speak-btn{background:none;border:1px solid var(--border);border-radius:50%;color:var(--muted);cursor:pointer;font-size:10px;height:20px;width:20px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.speak-btn:hover{border-color:var(--accent);color:var(--accent);}
+.speak-btn.speaking{border-color:#ef4444;color:#ef4444;}
 .bubble{padding:11px 15px;border-radius:var(--radius);line-height:1.68;font-size:14px;transition:background .3s,border-color .3s;}
 .msg.user .bubble{background:var(--user-bg);border:1px solid var(--border);border-bottom-right-radius:3px;color:var(--text);}
 .msg.eira .bubble{background:var(--eira-bg);border:1px solid var(--border);border-bottom-left-radius:3px;color:var(--text);border-left:2px solid var(--bubble-border-left);}
@@ -604,6 +607,24 @@ function resetVoiceButton() {
   document.getElementById('input').placeholder = 'Talk to EIRA...';
 }
 
+// Voice output (Speech Synthesis)
+function speakText(btn) {
+  const text = btn.getAttribute('data-text');
+  if (!text || !('speechSynthesis' in window)) {
+    showToast('Voice output not supported');
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-IN';
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  window.speechSynthesis.speak(utterance);
+  utterance.onstart = () => { btn.classList.add('speaking'); };
+  utterance.onend = () => { btn.classList.remove('speaking'); };
+  utterance.onerror = () => { btn.classList.remove('speaking'); };
+}
+
 function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
 function updateCount(el) { document.getElementById('char-count').textContent = el.value.length; }
 function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
@@ -669,7 +690,7 @@ function addMsg(role, content, agent, model, timestamp) {
   const div = document.createElement('div');
   if (role === 'eira' || role === 'assistant') {
     div.className = 'msg eira';
-    div.innerHTML = `<div class="msg-meta"><span>EIRA</span>${agent?`<span class="agent-tag">${agent}</span>`:''}<span>${time}</span>${model?`<span class="model-tag">${model}</span>`:''}</div><div class="bubble">${fmt(content)}</div>`;
+    div.innerHTML = `<div class="msg-meta"><span>EIRA</span>${agent?`<span class="agent-tag">${agent}</span>`:''}<span>${time}</span>${model?`<span class="model-tag">${model}</span>`:''}<button class="speak-btn" onclick="speakText(this)" data-text="${content.replace(/"/g,'&quot;')}" title="Listen">🔊</button></div><div class="bubble">${fmt(content)}</div>`;
   } else {
     div.className = 'msg user';
     div.innerHTML = `<div class="msg-meta"><span>you</span><span>${time}</span></div><div class="bubble">${content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
