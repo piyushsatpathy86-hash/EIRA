@@ -626,12 +626,14 @@ async function sendMessage() {
 
   // Attach file content if pending
   let finalMsg = msg;
+  let displayMsg = msg;
   if (pendingFileContent) {
     finalMsg = `File: ${pendingFileName}\n\nContent:\n${pendingFileContent}\n\nUser question: ${msg}`;
+    displayMsg = '📎 ' + pendingFileName + '\n\n' + msg;
     clearFile();
   }
 
-  addMsg('user', msg);
+  addMsg('user', displayMsg);
   chatHistory.push({role:'user', content:finalMsg});
   document.getElementById('typing').classList.add('visible');
   document.getElementById('messages').scrollTop = 999999;
