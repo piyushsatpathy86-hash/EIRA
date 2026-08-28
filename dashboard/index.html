@@ -66,15 +66,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .logo span{display:block;font-size:9px;color:var(--muted);letter-spacing:2px;font-weight:400;margin-top:3px;}
 .status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:5px;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
-
-/* User info in sidebar */
 .user-info{display:flex;align-items:center;gap:8px;padding:10px 8px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid var(--border);}
 .user-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;}
 .user-avatar-placeholder{width:28px;height:28px;border-radius:50%;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:12px;color:white;font-weight:600;}
 .user-name{font-size:12px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .logout-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px;transition:color .15s;}
 .logout-btn:hover{color:var(--danger);}
-
 .new-chat-btn{display:flex;align-items:center;gap:8px;width:100%;background:var(--accent-glow);border:1px solid var(--accent2);border-radius:var(--radius-sm);color:var(--accent);cursor:pointer;font-family:var(--font-ui);font-size:13px;font-weight:500;padding:10px 12px;margin:8px 0 6px;transition:all .15s;}
 .new-chat-btn:hover{background:var(--accent2);color:#fff;}
 .sidebar-label{font-size:9px;letter-spacing:2px;color:var(--muted);padding:10px 8px 5px;text-transform:uppercase;flex-shrink:0;}
@@ -104,6 +101,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .theme-btn.active{background:var(--accent-glow);color:var(--accent);border-color:var(--accent2);}
 .model-badge{font-family:var(--font-mono);font-size:10px;color:var(--muted);padding:6px 8px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);margin-top:8px;}
 .model-badge span{color:var(--accent);}
+
+/* FILE BADGE */
+.file-badge{display:none;align-items:center;gap:6px;background:var(--accent-glow);border:1px solid var(--accent2);border-radius:var(--radius-sm);padding:5px 10px;margin-bottom:8px;font-size:11px;color:var(--accent);font-family:var(--font-mono);}
+.file-badge.visible{display:flex;}
+.file-badge-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0 2px;}
+.file-badge-remove:hover{color:var(--danger);}
 
 /* MAIN */
 .main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);transition:background .3s;}
@@ -154,6 +157,7 @@ textarea{background:none;border:none;color:var(--text);font-family:var(--font-ui
 textarea::placeholder{color:var(--muted);}
 .upload-btn,.voice-btn{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);cursor:pointer;font-size:15px;height:34px;width:34px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
 .upload-btn:hover,.voice-btn:hover{border-color:var(--accent);color:var(--accent);}
+.upload-btn.has-file{border-color:var(--accent2);color:var(--accent);}
 .send-btn{background:var(--accent2);border:none;border-radius:var(--radius-sm);color:#fff;cursor:pointer;font-size:16px;height:34px;width:34px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
 .send-btn:hover{background:var(--accent);transform:scale(1.05);}
 .send-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
@@ -170,7 +174,6 @@ textarea::placeholder{color:var(--muted);}
 </head>
 <body data-theme="eira-dark">
 
-<!-- LOGIN SCREEN -->
 <div class="login-screen" id="login-screen">
   <div class="login-logo">EIRA</div>
   <div class="login-sub">Enhanced Intelligent Reasoning Assistant</div>
@@ -227,15 +230,15 @@ textarea::placeholder{color:var(--muted);}
     </div>
     <div class="messages" id="messages">
       <div class="welcome" id="welcome">
-        <div class="welcome-name" id="welcome-name">EIRA</div>
-        <div class="welcome-sub" id="welcome-sub">Enhanced Intelligent Reasoning Assistant</div>
-        <div class="component-grid" id="component-grid">
+        <div class="welcome-name">EIRA</div>
+        <div class="welcome-sub">Enhanced Intelligent Reasoning Assistant</div>
+        <div class="component-grid">
           <div class="comp-card" onclick="quickSend('Create study notes on binary search trees')"><div class="comp-card-title">📚 STUDY</div><div class="comp-card-desc">Notes, quizzes, concept explanations</div></div>
           <div class="comp-card" onclick="quickSend('Write a Java linked list implementation')"><div class="comp-card-title">💻 CODING</div><div class="comp-card-desc">Write, debug, review code</div></div>
           <div class="comp-card" onclick="quickSend('Research: what is RAG in AI?')"><div class="comp-card-title">🔍 RESEARCH</div><div class="comp-card-desc">Search, summarize, compare tech</div></div>
           <div class="comp-card" onclick="quickSend('Make a 30-day DSA study plan')"><div class="comp-card-title">🗓 PLANNER</div><div class="comp-card-desc">Study plans, goals, schedules</div></div>
         </div>
-        <div class="suggestions" id="suggestions">
+        <div class="suggestions">
           <button class="suggestion" onclick="quickSend('Explain time complexity with examples')">Time complexity</button>
           <button class="suggestion" onclick="quickSend('Debug this: NullPointerException in Java')">Debug Java error</button>
           <button class="suggestion" onclick="quickSend('Quiz me on sorting algorithms')">Quiz me</button>
@@ -247,15 +250,22 @@ textarea::placeholder{color:var(--muted);}
       </div>
     </div>
     <div class="input-area">
+      <div class="file-badge" id="file-badge">
+        <span id="file-badge-name">file.pdf</span>
+        <button class="file-badge-remove" onclick="clearFile()">✕</button>
+      </div>
       <div class="input-wrap">
-        <button class="upload-btn" onclick="showToast('File upload — coming soon!','info')">📎</button>
+        <input type="file" id="file-input" style="display:none"
+          accept=".pdf,.docx,.txt,.md,.py,.java,.js,.ts,.jsx,.tsx,.cpp,.c,.h,.html,.css,.json,.csv,.yaml,.yml"
+          onchange="handleFileUpload(event)"/>
+        <button class="upload-btn" id="upload-btn" onclick="document.getElementById('file-input').click()" title="Upload file">📎</button>
         <textarea id="input" placeholder="Talk to EIRA..." rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this);updateCount(this)"></textarea>
-        <button class="voice-btn" onclick="showToast('Voice — coming soon!','info')">🎙</button>
+        <button class="voice-btn" onclick="showToast('Voice — coming soon!','info')" title="Voice input">🎙</button>
         <button class="send-btn" id="send-btn" onclick="sendMessage()">↑</button>
       </div>
       <div class="input-footer">
-        <div class="input-hint">Enter — send · Shift+Enter — new line</div>
+        <div class="input-hint">Enter — send · Shift+Enter — new line · 📎 upload file</div>
         <div class="char-count" id="char-count">0</div>
       </div>
     </div>
@@ -264,7 +274,6 @@ textarea::placeholder{color:var(--muted);}
 
 <div class="toast" id="toast"></div>
 
-<!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut as firebaseSignOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -282,45 +291,34 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-
 let currentUser = null;
-let idToken = null;
 
 window.signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, provider);
     currentUser = result.user;
-    idToken = await currentUser.getIdToken();
-  } catch(e) {
-    showToast('Login failed: ' + e.message);
-  }
+  } catch(e) { showToast('Login failed: ' + e.message); }
 };
 
 window.signOut = async () => {
   await firebaseSignOut(auth);
   currentUser = null;
-  idToken = null;
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('user-info').style.display = 'none';
 };
 
 window.getToken = async () => {
-  if (currentUser) {
-    idToken = await currentUser.getIdToken();
-    return idToken;
-  }
+  if (currentUser) return await currentUser.getIdToken();
   return null;
 };
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    idToken = await user.getIdToken();
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('user-info').style.display = 'flex';
-    const nameEl = document.getElementById('user-name');
+    document.getElementById('user-name').textContent = user.displayName || user.email;
     const avatarEl = document.getElementById('user-avatar');
-    nameEl.textContent = user.displayName || user.email;
     if (user.photoURL) {
       avatarEl.outerHTML = `<img class="user-avatar" id="user-avatar" src="${user.photoURL}" alt="avatar"/>`;
     } else {
@@ -337,77 +335,72 @@ onAuthStateChanged(auth, async (user) => {
 <script>
 const API = 'https://eira-backend-l77h.onrender.com';
 let chatHistory = [], currentAgent = 'GENERAL', isLoading = false, currentSessionId = null;
+let pendingFileContent = null, pendingFileName = null;
 
-// ── Agent-specific welcome content ──
 const AGENT_CONTENT = {
   GENERAL: {
-    name: 'EIRA',
-    sub: 'Enhanced Intelligent Reasoning Assistant',
-    cards: [
-      {title:'📚 STUDY', desc:'Notes, quizzes, concept explanations', prompt:'Create study notes on binary search trees'},
-      {title:'💻 CODING', desc:'Write, debug, review code', prompt:'Write a Java linked list implementation'},
-      {title:'🔍 RESEARCH', desc:'Search, summarize, compare tech', prompt:'Research: what is RAG in AI?'},
-      {title:'🗓 PLANNER', desc:'Study plans, goals, schedules', prompt:'Make a 30-day DSA study plan'}
+    name:'EIRA', sub:'Enhanced Intelligent Reasoning Assistant',
+    cards:[
+      {title:'📚 STUDY',desc:'Notes, quizzes, concept explanations',prompt:'Create study notes on binary search trees'},
+      {title:'💻 CODING',desc:'Write, debug, review code',prompt:'Write a Java linked list implementation'},
+      {title:'🔍 RESEARCH',desc:'Search, summarize, compare tech',prompt:'Research: what is RAG in AI?'},
+      {title:'🗓 PLANNER',desc:'Study plans, goals, schedules',prompt:'Make a 30-day DSA study plan'}
     ],
-    suggestions: ['Explain time complexity with examples','Debug this: NullPointerException in Java','Quiz me on sorting algorithms','Compare Stack vs Queue']
+    suggestions:['Explain time complexity with examples','Debug this: NullPointerException in Java','Quiz me on sorting algorithms','Compare Stack vs Queue']
   },
   STUDY: {
-    name: 'STUDY',
-    sub: 'Notes · Quizzes · Concept Explanations',
-    cards: [
-      {title:'📖 CONCEPT', desc:'Explain a topic simply', prompt:'Explain dynamic programming with an example'},
-      {title:'📝 NOTES', desc:'Generate revision notes', prompt:'Create study notes on operating systems'},
-      {title:'🧠 QUIZ', desc:'Test your knowledge', prompt:'Quiz me on data structures'},
-      {title:'🎯 GATE PREP', desc:'GATE-focused explanations', prompt:'Explain time complexity for GATE prep'}
+    name:'STUDY', sub:'Notes · Quizzes · Concept Explanations',
+    cards:[
+      {title:'📖 CONCEPT',desc:'Explain a topic simply',prompt:'Explain dynamic programming with an example'},
+      {title:'📝 NOTES',desc:'Generate revision notes',prompt:'Create study notes on operating systems'},
+      {title:'🧠 QUIZ',desc:'Test your knowledge',prompt:'Quiz me on data structures'},
+      {title:'🎯 GATE PREP',desc:'GATE-focused explanations',prompt:'Explain time complexity for GATE prep'}
     ],
-    suggestions: ['Explain recursion with a diagram','Notes on graph traversal (BFS/DFS)','Quiz me on OS scheduling algorithms','Difference between process and thread']
+    suggestions:['Explain recursion with a diagram','Notes on graph traversal BFS DFS','Quiz me on OS scheduling algorithms','Difference between process and thread']
   },
   CODING: {
-    name: 'CODING',
-    sub: 'Write · Debug · Review Code',
-    cards: [
-      {title:'✍️ WRITE', desc:'Generate code from scratch', prompt:'Write a Python function to reverse a linked list'},
-      {title:'🐞 DEBUG', desc:'Fix an error in your code', prompt:'Debug this: NullPointerException in Java'},
-      {title:'🔍 REVIEW', desc:'Review code for improvements', prompt:'Review this code for best practices: [paste code]'},
-      {title:'📘 EXPLAIN', desc:'Understand what code does', prompt:'Explain what this code does: [paste code]'}
+    name:'CODING', sub:'Write · Debug · Review Code',
+    cards:[
+      {title:'✍️ WRITE',desc:'Generate code from scratch',prompt:'Write a Python function to reverse a linked list'},
+      {title:'🐞 DEBUG',desc:'Fix an error in your code',prompt:'Debug this: NullPointerException in Java'},
+      {title:'🔍 REVIEW',desc:'Review code for improvements',prompt:'Review this code for best practices'},
+      {title:'📘 EXPLAIN',desc:'Understand what code does',prompt:'Explain what this Java code does'}
     ],
-    suggestions: ['Write a REST API in FastAPI','Fix this SQL query error','Optimize this function for speed','Explain Big-O of this algorithm']
+    suggestions:['Write a REST API in FastAPI','Fix this SQL query error','Optimize this function for speed','Explain Big-O of this algorithm']
   },
   RESEARCH: {
-    name: 'RESEARCH',
-    sub: 'Search · Summarize · Compare',
-    cards: [
-      {title:'🔎 SEARCH', desc:'Find latest info on a topic', prompt:'What are the latest trends in AI agents?'},
-      {title:'⚖️ COMPARE', desc:'Compare two technologies', prompt:'Compare React vs Vue for a beginner'},
-      {title:'📊 SUMMARIZE', desc:'Summarize a complex topic', prompt:'Summarize how transformers work in AI'},
-      {title:'🌐 EXPLORE', desc:'Deep dive into a subject', prompt:'Research: what is RAG in AI?'}
+    name:'RESEARCH', sub:'Search · Summarize · Compare',
+    cards:[
+      {title:'🔎 SEARCH',desc:'Find latest info on a topic',prompt:'What are the latest trends in AI agents?'},
+      {title:'⚖️ COMPARE',desc:'Compare two technologies',prompt:'Compare React vs Vue for a beginner'},
+      {title:'📊 SUMMARIZE',desc:'Summarize a complex topic',prompt:'Summarize how transformers work in AI'},
+      {title:'🌐 EXPLORE',desc:'Deep dive into a subject',prompt:'Research: what is RAG in AI?'}
     ],
-    suggestions: ['Latest trends in web development','Compare Python vs JavaScript for AI','What is vector database?','Explain microservices architecture']
+    suggestions:['Latest trends in web development','Compare Python vs JavaScript for AI','What is vector database?','Explain microservices architecture']
   },
   NOTES: {
-    name: 'NOTES',
-    sub: 'YouTube Transcripts · Revision Sheets',
-    cards: [
-      {title:'🎥 YOUTUBE', desc:'Turn a video into notes', prompt:'Convert this YouTube video into notes: [paste link]'},
-      {title:'📄 SUMMARY', desc:'Summarize long content', prompt:'Summarize this lecture into key points: [paste text]'},
-      {title:'🗂 REVISION', desc:'Create a revision sheet', prompt:'Make a revision sheet for DBMS normalization'},
-      {title:'✏️ FLASHCARDS', desc:'Generate flashcards', prompt:'Create flashcards for computer networks basics'}
+    name:'NOTES', sub:'YouTube Transcripts · Revision Sheets',
+    cards:[
+      {title:'🎥 YOUTUBE',desc:'Turn a video into notes',prompt:'Convert this YouTube video into notes'},
+      {title:'📄 SUMMARY',desc:'Summarize long content',prompt:'Summarize this lecture into key points'},
+      {title:'🗂 REVISION',desc:'Create a revision sheet',prompt:'Make a revision sheet for DBMS normalization'},
+      {title:'✏️ FLASHCARDS',desc:'Generate flashcards',prompt:'Create flashcards for computer networks basics'}
     ],
-    suggestions: ['Notes from a DSA YouTube playlist','Summarize this article in bullet points','Revision sheet for OOP concepts','Flashcards on SQL joins']
+    suggestions:['Notes from a DSA YouTube playlist','Summarize this article in bullet points','Revision sheet for OOP concepts','Flashcards on SQL joins']
   },
   PLANNER: {
-    name: 'PLANNER',
-    sub: 'Study Plans · Goals · Schedules',
-    cards: [
-      {title:'📅 STUDY PLAN', desc:'Create a study schedule', prompt:'Make a 30-day DSA study plan'},
-      {title:'🎯 GOALS', desc:'Break down a big goal', prompt:'Help me plan for placements in 3 months'},
-      {title:'⏱ ROUTINE', desc:'Design a daily routine', prompt:'Create a daily study routine for a college student'},
-      {title:'📈 PROGRESS', desc:'Track your progress', prompt:'Help me plan revision for upcoming exams'}
+    name:'PLANNER', sub:'Study Plans · Goals · Schedules',
+    cards:[
+      {title:'📅 STUDY PLAN',desc:'Create a study schedule',prompt:'Make a 30-day DSA study plan'},
+      {title:'🎯 GOALS',desc:'Break down a big goal',prompt:'Help me plan for placements in 3 months'},
+      {title:'⏱ ROUTINE',desc:'Design a daily routine',prompt:'Create a daily study routine for a college student'},
+      {title:'📈 PROGRESS',desc:'Track your progress',prompt:'Help me plan revision for upcoming exams'}
     ],
-    suggestions: ['30-day DSA roadmap','Plan for GATE preparation','Daily routine for coding + college','Project timeline for final year project']
+    suggestions:['30-day DSA roadmap','Plan for GATE preparation','Daily routine for coding + college','Project timeline for final year project']
   }
 };
 
+// Theme
 function setTheme(theme, btn) {
   document.body.setAttribute('data-theme', theme);
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
@@ -423,33 +416,23 @@ if (saved) {
   });
 }
 
-// Applies an agent switch to the UI only — no history side effects.
-// Used both by the click handler (setAgent) and by the popstate handler,
-// so that navigating back/forward never re-pushes a new history entry.
 function _applyAgentUI(agent) {
   currentAgent = agent;
   document.querySelectorAll('.agent-btn').forEach(b => b.classList.remove('active'));
   const btn = document.querySelector(`.agent-btn[data-agent="${agent}"]`);
   if (btn) btn.classList.add('active');
   document.getElementById('topbar-agent').textContent = agent;
-
-  // If welcome screen is currently showing (no chat started yet), refresh it with agent-specific prompts
-  if (document.getElementById('welcome')) {
-    renderWelcome(agent);
-  }
+  if (document.getElementById('welcome')) renderWelcome(agent);
 }
 
-// Click handler: applies the agent switch AND records an in-app history
-// checkpoint, so the browser back button returns to the previous agent
-// instead of leaving the app entirely.
 function setAgent(agent, btn) {
   _applyAgentUI(agent);
-  window.history.pushState({type: 'agent', agent: agent, sessionId: currentSessionId}, '');
+  window.history.pushState({type:'agent', agent, sessionId:currentSessionId}, '');
 }
 
 async function getAuthHeaders() {
   const token = window.getToken ? await window.getToken() : null;
-  const headers = {'Content-Type': 'application/json'};
+  const headers = {'Content-Type':'application/json'};
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;
 }
@@ -477,8 +460,6 @@ function renderSessions(sessions) {
   }).join('');
 }
 
-// Applies loading a session to the UI only — no history side effects.
-// Used both by the click handler (loadSession) and by the popstate handler.
 async function _applySessionLoad(sessionId) {
   currentSessionId = sessionId;
   chatHistory = [];
@@ -493,12 +474,9 @@ async function _applySessionLoad(sessionId) {
   } catch(e) { showToast('Session load error'); }
 }
 
-// Click handler: loads the session AND records an in-app history checkpoint,
-// so the browser back button returns to the previous session/agent instead
-// of leaving the app entirely.
 async function loadSession(sessionId) {
   await _applySessionLoad(sessionId);
-  window.history.pushState({type: 'session', sessionId: sessionId, agent: currentAgent}, '');
+  window.history.pushState({type:'session', sessionId, agent:currentAgent}, '');
 }
 
 async function deleteSession(e, sessionId) {
@@ -512,8 +490,6 @@ async function deleteSession(e, sessionId) {
   } catch(err) { showToast('Delete error'); }
 }
 
-// Applies "new chat" to the UI only — no history side effects.
-// Used both by the click handler (newChat) and by the popstate handler.
 function _applyNewChat() {
   currentSessionId = null;
   chatHistory = [];
@@ -521,14 +497,50 @@ function _applyNewChat() {
   loadSessions();
 }
 
-// Click handler: resets to a new chat AND records an in-app history
-// checkpoint, so the browser back button returns to the previous
-// session/agent instead of leaving the app entirely.
 function newChat() {
   _applyNewChat();
-  window.history.pushState({type: 'newchat', agent: currentAgent, sessionId: null}, '');
+  window.history.pushState({type:'newchat', agent:currentAgent, sessionId:null}, '');
 }
-function clearCurrentChat() { if (currentSessionId) deleteSession({stopPropagation:()=>{}}, currentSessionId); else newChat(); }
+
+function clearCurrentChat() {
+  if (currentSessionId) deleteSession({stopPropagation:()=>{}}, currentSessionId);
+  else newChat();
+}
+
+// File upload
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  showToast('Uploading ' + file.name + '...', 'info');
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const token = window.getToken ? await window.getToken() : null;
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API}/upload`, {method:'POST', headers, body:formData});
+    const data = await res.json();
+    if (data.error) { showToast(data.error); return; }
+    pendingFileContent = data.content;
+    pendingFileName = data.filename;
+    document.getElementById('file-badge-name').textContent = data.filename;
+    document.getElementById('file-badge').classList.add('visible');
+    document.getElementById('upload-btn').classList.add('has-file');
+    showToast(file.name + ' ready! Now ask EIRA about it.', 'success');
+    document.getElementById('input').placeholder = `Ask about ${data.filename}...`;
+    document.getElementById('input').focus();
+  } catch(e) { showToast('Upload failed — check backend'); }
+  event.target.value = '';
+}
+
+function clearFile() {
+  pendingFileContent = null;
+  pendingFileName = null;
+  document.getElementById('file-badge').classList.remove('visible');
+  document.getElementById('upload-btn').classList.remove('has-file');
+  document.getElementById('input').placeholder = 'Talk to EIRA...';
+}
+
 function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
 function updateCount(el) { document.getElementById('char-count').textContent = el.value.length; }
 function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
@@ -538,17 +550,17 @@ function renderWelcome(agent) {
   agent = agent || 'GENERAL';
   const content = AGENT_CONTENT[agent] || AGENT_CONTENT.GENERAL;
   const cardsHtml = content.cards.map(c =>
-    `<div class="comp-card" onclick="quickSend('${c.prompt.replace(/'/g, "\\'")}')"><div class="comp-card-title">${c.title}</div><div class="comp-card-desc">${c.desc}</div></div>`
+    `<div class="comp-card" onclick="quickSend('${c.prompt.replace(/'/g,"\\'")}')"><div class="comp-card-title">${c.title}</div><div class="comp-card-desc">${c.desc}</div></div>`
   ).join('');
   const suggestionsHtml = content.suggestions.map(s =>
-    `<button class="suggestion" onclick="quickSend('${s.replace(/'/g, "\\'")}')">${s}</button>`
+    `<button class="suggestion" onclick="quickSend('${s.replace(/'/g,"\\'")}')">${s}</button>`
   ).join('');
   document.getElementById('messages').innerHTML = `
     <div class="welcome" id="welcome">
-      <div class="welcome-name" id="welcome-name">${content.name}</div>
-      <div class="welcome-sub" id="welcome-sub">${content.sub}</div>
-      <div class="component-grid" id="component-grid">${cardsHtml}</div>
-      <div class="suggestions" id="suggestions">${suggestionsHtml}</div>
+      <div class="welcome-name">${content.name}</div>
+      <div class="welcome-sub">${content.sub}</div>
+      <div class="component-grid">${cardsHtml}</div>
+      <div class="suggestions">${suggestionsHtml}</div>
     </div>
     <div class="typing-indicator" id="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
 }
@@ -561,42 +573,26 @@ function showToast(msg, type) {
 }
 
 function fmt(text) {
-  // Step 1: protect fenced code blocks first so nothing below (bold, links)
-  // can reach inside them and corrupt the code.
   const codeBlocks = [];
   text = text.replace(/```(\w+)?\n?([\s\S]*?)```/g, (_, lang, code) => {
     codeBlocks.push(`<pre><code>${code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>`);
     return `\u0000CB${codeBlocks.length - 1}\u0000`;
   });
-
-  // Step 2: protect inline code the same way.
   const inlineCodes = [];
   text = text.replace(/`([^`]+)`/g, (_, code) => {
     inlineCodes.push(`<code>${code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code>`);
     return `\u0000IC${inlineCodes.length - 1}\u0000`;
   });
-
-  // Step 3: bold text.
   text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-  // Step 4: markdown-style links -> [label](url)
-  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-
-  // Step 5: bare URLs EIRA just types out as plain text (e.g. "https://eira-coral.vercel.app").
-  // Trims trailing punctuation like a period or closing bracket so it doesn't get
-  // swallowed into the link.
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
   text = text.replace(/(^|[\s(])(https?:\/\/[^\s<]+)/g, (match, pre, url) => {
     let trail = '';
     const m = url.match(/[.,;:!?)\]]+$/);
     if (m) { trail = m[0]; url = url.slice(0, -trail.length); }
     return `${pre}<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${trail}`;
   });
-
-  // Step 6: restore protected code segments.
   text = text.replace(/\u0000IC(\d+)\u0000/g, (_, i) => inlineCodes[i]);
   text = text.replace(/\u0000CB(\d+)\u0000/g, (_, i) => codeBlocks[i]);
-
   text = text.replace(/\n/g, '<br>');
   return text;
 }
@@ -627,15 +623,24 @@ async function sendMessage() {
   document.getElementById('send-btn').disabled = true;
   input.value = ''; input.style.height = 'auto';
   document.getElementById('char-count').textContent = '0';
+
+  // Attach file content if pending
+  let finalMsg = msg;
+  if (pendingFileContent) {
+    finalMsg = `File: ${pendingFileName}\n\nContent:\n${pendingFileContent}\n\nUser question: ${msg}`;
+    clearFile();
+  }
+
   addMsg('user', msg);
-  chatHistory.push({role:'user', content:msg});
+  chatHistory.push({role:'user', content:finalMsg});
   document.getElementById('typing').classList.add('visible');
   document.getElementById('messages').scrollTop = 999999;
+
   try {
     const headers = await getAuthHeaders();
     const res = await fetch(`${API}/chat`, {
       method:'POST', headers,
-      body: JSON.stringify({message:msg, history:chatHistory.slice(-10), session_id:currentSessionId||''})
+      body: JSON.stringify({message:finalMsg, history:chatHistory.slice(-10), session_id:currentSessionId||''})
     });
     if (!res.ok) throw new Error(`${res.status}`);
     const data = await res.json();
@@ -655,27 +660,13 @@ async function sendMessage() {
   input.focus();
 }
 
-// ── Browser back/forward button support ──
-// Sets a baseline "new chat" checkpoint for the current page load, without
-// adding an extra entry (replaceState, not pushState). Every agent switch,
-// session open, and "New Chat" click pushes a new entry after this one, so
-// pressing Back walks through those in-app states before finally leaving
-// the app — instead of leaving on the very first Back press.
-window.history.replaceState({type: 'newchat', agent: currentAgent, sessionId: null}, '');
-
+window.history.replaceState({type:'newchat', agent:currentAgent, sessionId:null}, '');
 window.addEventListener('popstate', (event) => {
   const state = event.state;
-  if (!state) {
-    _applyNewChat();
-    return;
-  }
-  if (state.type === 'agent') {
-    _applyAgentUI(state.agent);
-  } else if (state.type === 'session') {
-    _applySessionLoad(state.sessionId);
-  } else if (state.type === 'newchat') {
-    _applyNewChat();
-  }
+  if (!state) { _applyNewChat(); return; }
+  if (state.type === 'agent') _applyAgentUI(state.agent);
+  else if (state.type === 'session') _applySessionLoad(state.sessionId);
+  else if (state.type === 'newchat') _applyNewChat();
 });
 </script>
 </body>
