@@ -4,6 +4,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.141-green)
 ![Deployed](https://img.shields.io/badge/Deployed-Vercel%20%2B%20Render-purple)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 **An AI-powered assistant with 5 specialized agents, semantic memory, voice support, and file processing. Deployed and live.**
 
