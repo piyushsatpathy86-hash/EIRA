@@ -54,11 +54,13 @@
 
 ```mermaid
 graph TD
-    A[Frontend - Vercel<br/>HTML/CSS/JS + Firebase Auth] -->|HTTPS Bearer Token| B[Backend - Render<br/>FastAPI Server]
-    B --> C[Intent Router<br/>Keyword-based]
-    C --> D[5 Agents<br/>Study, Coding, Research, Notes, Planner]
-    D --> E[Memory & Storage<br/>ChromaDB RAG + SQLite]
-    B --> F[External Services<br/>Groq API, Tavily, DuckDuckGo]
+    A[Frontend - Vercel] -->|HTTPS Bearer Token| B[Backend - Render]
+    B --> C[Intent Router]
+    C --> D[5 Agents]
+    D --> E[Memory & Storage]
+    B --> F[External Services]
+    E --> G[ChromaDB + SQLite]
+    F --> H[Groq API + Tavily + DuckDuckGo]
 ```
 
 ## 🧠 How Memory Works (RAG)
@@ -70,22 +72,31 @@ graph TD
 5. EIRA responds with memory-aware answer
 
 ```python
-# tools/memory_tool.py (simplified)
 def get_relevant_memory(query: str, n_results: int = 3) -> str:
     results = collection.query(
         query_texts=[query],
         n_results=min(n_results, collection.count())
     )
     return results["documents"][0]
+```
 
 ## 🚀 Quick Start
-Backend (Render)
+
+### Backend (Render)
+
+```bash
 uvicorn api.main:app --host 0.0.0.0 --port $PORT
-Frontend (Vercel)
-Set Root Directory to dashboard, deploy index.html.
+```
+
+### Frontend (Vercel)
+
+Set `Root Directory` to `dashboard`, deploy `index.html`.
 
 ## 📝 License
+
 MIT License — free to use and learn from.
 
-Built with 🧠 by Piyush Satpathy
-2nd Year CSE, GITA Autonomous College, Bhubaneswar
+---
+
+**Built with 🧠 by Piyush Satpathy**  
+*2nd Year CSE, GITA Autonomous College, Bhubaneswar*
