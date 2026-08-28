@@ -3,11 +3,16 @@
 # ============================================================
 
 import sys
-sys.path.append("C:/EIRA")
-
+import os
 import chromadb
 from datetime import datetime
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from config.settings import MEMORY_DIR
+
+# Ensure memory directory exists
+os.makedirs(MEMORY_DIR, exist_ok=True)
 
 # ChromaDB client
 client = chromadb.PersistentClient(path=MEMORY_DIR)
@@ -37,16 +42,16 @@ def get_relevant_memory(query: str, n_results: int = 3) -> str:
         count = collection.count()
         if count == 0:
             return ""
-        
+
         results = collection.query(
             query_texts=[query],
             n_results=min(n_results, count)
         )
-        
+
         if not results["documents"][0]:
             return ""
-        
-        memory_text = "📝 Relevant past context:\n"
+
+        memory_text = "📚 Relevant past context:\n"
         for doc in results["documents"][0]:
             memory_text += f"- {doc[:200]}\n"
         return memory_text
@@ -67,13 +72,13 @@ def clear_memory():
 if __name__ == "__main__":
     # Test
     print("Testing EIRA Memory...")
-    save_memory("what is binary search?", 
-                "Binary search is a search algorithm...", 
+    save_memory("what is binary search?",
+                "Binary search is a search algorithm...",
                 "study")
-    save_memory("write a java hello world", 
-                "public class Hello { ... }", 
+    save_memory("write a java hello world",
+                "public class Hello { ... }",
                 "coding")
-    
+
     result = get_relevant_memory("binary search algorithm")
     print(f"Memory found:\n{result}")
     print("Memory test complete! ✅")

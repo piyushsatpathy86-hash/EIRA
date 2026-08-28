@@ -3,16 +3,18 @@
 # ============================================================
 
 import sys
-sys.path.append("C:/EIRA")
-
+import os
 import sqlite3
-import json
 from datetime import datetime
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from config.settings import DATA_DIR
 
-DB_PATH = f"{DATA_DIR}/sessions.db"
+DB_PATH = os.path.join(DATA_DIR, "sessions.db")
 
 def init_db():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
@@ -35,7 +37,6 @@ def init_db():
             timestamp TEXT
         )
     ''')
-    # user_id column add karo agar nahi hai
     try:
         c.execute('ALTER TABLE sessions ADD COLUMN user_id TEXT DEFAULT "anonymous"')
     except:
@@ -44,6 +45,7 @@ def init_db():
     conn.close()
 
 def create_session(session_id: str, title: str = "New Chat", user_id: str = "anonymous"):
+    init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     now = datetime.now().isoformat()
@@ -56,6 +58,7 @@ def create_session(session_id: str, title: str = "New Chat", user_id: str = "ano
 
 def save_message(session_id: str, role: str, content: str,
                  agent: str = "", model: str = ""):
+    init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     now = datetime.now().isoformat()
@@ -68,6 +71,7 @@ def save_message(session_id: str, role: str, content: str,
     conn.close()
 
 def get_sessions(user_id: str = "anonymous"):
+    init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
@@ -80,6 +84,7 @@ def get_sessions(user_id: str = "anonymous"):
     return [{"id": r[0], "title": r[1], "updated_at": r[2]} for r in rows]
 
 def get_messages(session_id: str):
+    init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
@@ -93,6 +98,7 @@ def get_messages(session_id: str):
              "model": r[3], "timestamp": r[4]} for r in rows]
 
 def update_session_title(session_id: str, title: str):
+    init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('UPDATE sessions SET title = ? WHERE id = ?', (title, session_id))
@@ -100,11 +106,10 @@ def update_session_title(session_id: str, title: str):
     conn.close()
 
 def delete_session(session_id: str, user_id: str = "anonymous"):
+    init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('DELETE FROM messages WHERE session_id = ?', (session_id,))
     c.execute('DELETE FROM sessions WHERE id = ? AND user_id = ?', (session_id, user_id))
     conn.commit()
     conn.close()
-
-init_db()
