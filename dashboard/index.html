@@ -48,7 +48,6 @@
 
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:15px;line-height:1.6;transition:background .3s,color .3s;}
 
-/* LOGIN SCREEN */
 .login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:16px;}
 .login-screen.hidden{display:none;}
 .login-logo{font-family:var(--font-mono);font-size:48px;font-weight:700;color:var(--accent);letter-spacing:12px;margin-bottom:8px;}
@@ -58,7 +57,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .google-btn img{width:22px;height:22px;}
 .login-note{font-size:11px;color:var(--muted);font-family:var(--font-mono);}
 
-/* LAYOUT */
 .app{display:grid;grid-template-columns:260px 1fr;height:100vh;overflow:hidden;}
 .sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:background .3s,border-color .3s;}
 .sidebar-top{padding:20px 14px 0;flex-shrink:0;}
@@ -102,13 +100,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .model-badge{font-family:var(--font-mono);font-size:10px;color:var(--muted);padding:6px 8px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);margin-top:8px;}
 .model-badge span{color:var(--accent);}
 
-/* FILE BADGE */
 .file-badge{display:none;align-items:center;gap:6px;background:var(--accent-glow);border:1px solid var(--accent2);border-radius:var(--radius-sm);padding:5px 10px;margin-bottom:8px;font-size:11px;color:var(--accent);font-family:var(--font-mono);}
 .file-badge.visible{display:flex;}
 .file-badge-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0 2px;}
 .file-badge-remove:hover{color:var(--danger);}
 
-/* MAIN */
 .main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);transition:background .3s;}
 .topbar{display:flex;align-items:center;gap:10px;padding:14px 22px;border-bottom:1px solid var(--border);background:var(--surface);transition:background .3s,border-color .3s;}
 .topbar-title{font-family:var(--font-mono);font-size:13px;color:var(--accent);letter-spacing:1px;}
@@ -554,12 +550,10 @@ function toggleVoice() {
     showToast('Voice not supported in this browser. Use Chrome.');
     return;
   }
-
   if (isRecording) {
     recognition.stop();
     return;
   }
-
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
   recognition.lang = 'en-IN';
@@ -607,7 +601,15 @@ function resetVoiceButton() {
   document.getElementById('input').placeholder = 'Talk to EIRA...';
 }
 
-// Voice output (Speech Synthesis with female voice + stop button)
+// Pre-load voices
+let availableVoices = [];
+function loadVoices() {
+  availableVoices = window.speechSynthesis.getVoices();
+}
+window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+// Voice output (Speech Synthesis - FORCE FEMALE)
 function speakText(btn) {
   let text = btn.getAttribute('data-text');
   if (!text || !('speechSynthesis' in window)) {
@@ -636,19 +638,24 @@ function speakText(btn) {
   
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-IN';
+  utterance.lang = 'en-US';
   utterance.rate = 1;
-  utterance.pitch = 1;
+  utterance.pitch = 1.5;
   
-  const voices = window.speechSynthesis.getVoices();
+  const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
   
   const femaleVoice = 
-    voices.find(v => v.name === 'Microsoft Heera - English (India)') ||
-    voices.find(v => v.name === 'Microsoft Zira - English (United States)') ||
-    voices.find(v => v.name === 'Google UK English Female') ||
-    voices.find(v => v.name.includes('Female'));
+    voices.find(v => v.name.toLowerCase().includes('heera')) ||
+    voices.find(v => v.name.toLowerCase().includes('zira')) ||
+    voices.find(v => v.name.toLowerCase().includes('google uk english female')) ||
+    voices.find(v => v.name.toLowerCase().includes('female'));
   
-  if (femaleVoice) utterance.voice = femaleVoice;
+  if (femaleVoice) {
+    utterance.voice = femaleVoice;
+    utterance.lang = femaleVoice.lang;
+  } else {
+    utterance.pitch = 2;
+  }
   
   window.speechSynthesis.speak(utterance);
   btn.classList.add('speaking');
