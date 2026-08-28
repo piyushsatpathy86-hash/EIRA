@@ -1,189 +1,112 @@
-# ✦ EIRA — Enhanced Intelligent Reasoning Assistant
-
-> A local AI Assistant with multi-agent architecture, persistent memory, and real-time web search.
+# EIRA — Multi-Agent AI Assistant
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
-![Groq](https://img.shields.io/badge/Groq-API-orange)
-![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_DB-purple)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.141-green)
+![Deployed](https://img.shields.io/badge/Deployed-Vercel%20%2B%20Render-purple)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
----
+**An AI-powered assistant with 5 specialized agents, semantic memory, voice support, and file processing. Deployed and live.**
 
-## What is EIRA?
+## 🚀 Live Demo
 
-EIRA is a personal AI operating system built for students and developers. She routes your requests to specialized AI agents, remembers past conversations, and searches the web in real time — all running locally on your machine.
+| Service | URL |
+|---------|-----|
+| **Frontend** | [eira-coral.vercel.app](https://eira-coral.vercel.app) |
+| **Backend API** | [eira-backend-v2.onrender.com/docs](https://eira-backend-v2.onrender.com/docs) |
 
----
+## 📸 Screenshots
 
-## Features
+| Login | Chat |
+|-------|------|
+| ![Login](screenshots/login.png) | ![Chat](screenshots/chat.png) |
 
-- **Multi-Agent System** — 5 specialized agents (Study, Coding, Research, Notes, Planner)
-- **Persistent Memory** — ChromaDB vector database remembers past conversations
-- **Real-time Web Search** — DuckDuckGo + Tavily integration
-- **Session Management** — Full conversation history like ChatGPT
-- **4 Themes** — Dark, Light, Teal, Amber
-- **Groq + Ollama** — Cloud speed with local fallback
-- **FastAPI Backend** — Production-grade REST API
-- **Privacy First** — Runs 100% locally
+| Agents | Themes |
+|--------|--------|
+| ![Agents](screenshots/agents.png) | ![Themes](screenshots/themes.png) |
 
----
+## ✨ Features
 
-## Tech Stack
+- 🤖 **5 Specialized Agents** — Study, Coding, Research, Notes, Planner
+- 🧠 **Semantic Memory (RAG)** — ChromaDB vector storage, cross-session context
+- 🎙 **Voice Input/Output** — Web Speech API (STT + TTS with female voice)
+- 📎 **File Upload** — PDF, DOCX, TXT, code files (text extraction)
+- 🔐 **Google Authentication** — Firebase Auth, per-user data isolation
+- 💾 **Session Management** — SQLite-based chat history
+- 🔍 **Web Search** — Tavily + DuckDuckGo fallback
+- 🎨 **4 Themes** — Dark, Light, Teal, Amber
+- 📱 **Responsive UI** — Works on mobile & desktop
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | Python, FastAPI, Uvicorn |
-| AI Models | Groq API, Ollama, Qwen2.5, DeepSeek-Coder |
-| Memory | ChromaDB, Sentence-Transformers |
-| Search | DuckDuckGo, Tavily |
-| Database | SQLite (sessions) |
-| Frontend | HTML, CSS, JavaScript |
+## 🛠 Tech Stack
 
----
-
-## Agents
-
-| Agent | Capabilities |
+| Layer | Technologies |
 |-------|-------------|
-| Study | Notes, quizzes, concept explanations — DSA, Java, GATE |
-| Coding | Write, debug, review code in any language |
-| Research | Web search, summarize, compare technologies |
-| Notes | YouTube transcripts to notes, revision sheets |
-| Planner | Study plans, project plans, goal tracking |
+| **Frontend** | HTML5, CSS3, JavaScript (Vanilla), Firebase SDK |
+| **Backend** | FastAPI, Python 3.11, Uvicorn |
+| **AI/ML** | Groq API (GPT-OSS-20B), Ollama (Qwen2.5, DeepSeek-Coder), Sentence Transformers |
+| **Vector DB** | ChromaDB |
+| **Database** | SQLite |
+| **Auth** | Firebase Authentication (Google Sign-In) |
+| **Search** | Tavily API, DuckDuckGo (ddgs) |
+| **Deployment** | Vercel (frontend), Render (backend) |
+| **Monitoring** | UptimeRobot (cold-start prevention) |
 
----
+## 🏗 Architecture
+┌─────────────────────────────────────────────┐
+│ Frontend (Vercel) │
+│ HTML/CSS/JS + Firebase Auth │
+└──────────────────┬──────────────────────────┘
+│ HTTPS (Bearer Token)
+┌──────────────────▼──────────────────────────┐
+│ Backend (Render) │
+│ FastAPI Server │
+│ ┌────────────────────────────────────┐ │
+│ │ Intent Router │ │
+│ │ (Keyword-based → Agent Selection) │ │
+│ └──────────┬─────────────────────────┘ │
+│ │ │
+│ ┌──────────▼─────────────────────────┐ │
+│ │ 5 Agents │ │
+│ │ Study │ Coding │ Research │ │
+│ │ Notes │ Planner │ │
+│ └──────────┬─────────────────────────┘ │
+│ │ │
+│ ┌──────────▼─────────────────────────┐ │
+│ │ Memory & Storage │ │
+│ │ ChromaDB (RAG) + SQLite (sessions)│ │
+│ └────────────────────────────────────┘ │
+│ │ │
+│ ┌──────────▼─────────────────────────┐ │
+│ │ External Services │ │
+│ │ Groq API │ Tavily │ DuckDuckGo │ │
+│ └────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
 
-## Project Structure
 
-```
-EIRA/
-├── agents/
-│   ├── coding_agent.py
-│   ├── notes_agent.py
-│   ├── planner_agent.py
-│   ├── research_agent.py
-│   └── study_agent.py
-├── api/
-│   └── main.py
-├── config/
-│   └── settings.py        # gitignored — add your keys here
-├── core/
-│   ├── eira.py
-│   └── router.py
-├── dashboard/
-│   └── index.html
-├── data/                  # gitignored — memory, sessions, notes
-├── tools/
-│   ├── desktop_control.py
-|   ├── files_tool.py
-│   ├── memory_tool.py
-│   ├── search_tool.py
-│   ├── session_tool.py
-│   └── system_control.py
-└── README.md
-```
+## 🧠 How Memory Works (RAG)
 
----
+1. User sends message
+2. Message embedded using `sentence-transformers`
+3. Semantic search in ChromaDB finds relevant past context
+4. Context injected into system prompt
+5. EIRA responds with memory-aware answer
 
-## Setup
-
-### 1. Clone the repo
-```bash
-git clone https://github.com/piyushsatpathy86-hash/EIRA.git
-cd EIRA
-```
-
-### 2. Install dependencies
-```bash
-pip install fastapi uvicorn groq chromadb sentence-transformers ddgs tavily-python
-```
-
-### 3. Configure settings
-Create `config/settings.py`:
 ```python
-GROQ_API_KEY   = "your_groq_api_key"
-TAVILY_API_KEY = "your_tavily_api_key"
-GROQ_MODEL     = "openai/gpt-oss-20b"
-USE_GROQ       = True
-USE_TAVILY     = True
-OLLAMA_HOST    = "http://localhost:11434"
-API_HOST       = "0.0.0.0"
-API_PORT       = 8001
-DATA_DIR       = "C:/EIRA/data"
-MEMORY_DIR     = "C:/EIRA/data/memory"
-```
+# tools/memory_tool.py (simplified)
+def get_relevant_memory(query: str, n_results: int = 3) -> str:
+    results = collection.query(
+        query_texts=[query],
+        n_results=min(n_results, collection.count())
+    )
+    return results["documents"][0]
 
-### 4. Get free API keys
-- **Groq** — [console.groq.com](https://console.groq.com) — free, no credit card
-- **Tavily** — [tavily.com](https://tavily.com) — free 1000 searches/month
+🚀 Quick Start
+Backend (Render)
+uvicorn api.main:app --host 0.0.0.0 --port $PORT
+Frontend (Vercel)
+Set Root Directory to dashboard, deploy index.html.
 
-### 5. Run EIRA
-```bash
-python api/main.py
-```
+📝 License
+MIT License — free to use and learn from.
 
-### 6. Open dashboard
-Open `dashboard/index.html` in your browser.
-
----
-
-## How it works
-
-```
-You type a message
-        ↓
-Router detects intent (Study / Coding / Research / Notes / Planner)
-        ↓
-Memory fetches relevant past context (ChromaDB)
-        ↓
-Research agent searches web if needed (DuckDuckGo / Tavily)
-        ↓
-Groq API generates response (Ollama as fallback)
-        ↓
-Response saved to memory + session (SQLite)
-        ↓
-EIRA replies
-```
-
----
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /chat | Send message to EIRA |
-| GET | /sessions | Get all sessions |
-| GET | /sessions/{id}/messages | Get session messages |
-| POST | /sessions | Create new session |
-| DELETE | /sessions/{id} | Delete session |
-| GET | / | Health check |
-
----
-
-## Roadmap
-
-- [x] Multi-agent architecture
-- [x] Persistent memory (ChromaDB)
-- [x] Web search integration
-- [x] Session management
-- [x] Custom Web UI with themes
-- [x] Voice input (Whisper)
-- [x] Text-to-speech (Coqui TTS)
-- [x] User authentication
-- [ ] Cloud deployment
-- [ ] LangChain integration
-
----
-
-## Built By
-
-**Piyush Satpathy** — 2nd year CSE student
-GITA Autonomous College, Bhubaneswar
-GitHub: [@piyushsatpathy86-hash](https://github.com/piyushsatpathy86-hash)
-
----
-
-## License
-
-MIT License — feel free to use and build on this project.
+Built with 🧠 by Piyush Satpathy
+2nd Year CSE, GITA Autonomous College, Bhubaneswar
