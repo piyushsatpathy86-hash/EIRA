@@ -601,6 +601,9 @@ function resetVoiceButton() {
   document.getElementById('input').placeholder = 'Talk to EIRA...';
 }
 
+// Global stop flag
+let globalStopSpeech = false;
+
 // Pre-load voices
 let availableVoices = [];
 function loadVoices() {
@@ -609,7 +612,7 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-// Voice output (FINAL - stop fix, female voice, sentence pauses, no emoji)
+// Voice output (FINAL - stop fix with global variable)
 function speakText(btn) {
   let text = btn.getAttribute('data-text');
   if (!text || !('speechSynthesis' in window)) {
@@ -618,11 +621,14 @@ function speakText(btn) {
   }
   
   if (btn.classList.contains('speaking')) {
+    globalStopSpeech = true;
     window.speechSynthesis.cancel();
     btn.classList.remove('speaking');
     btn.textContent = '🔊';
     return;
   }
+  
+  globalStopSpeech = false;
   
   text = text.replace(/```[\s\S]*?```/g, ' code block ');
   text = text.replace(/`[^`]*`/g, ' ');
@@ -647,13 +653,12 @@ function speakText(btn) {
   
   const sentences = text.split(/(?<=[.!?])\s+/);
   let currentIndex = 0;
-  let isStopped = false;
   
   btn.classList.add('speaking');
   btn.textContent = '⏹';
   
   function speakNextSentence() {
-    if (isStopped || currentIndex >= sentences.length) {
+    if (globalStopSpeech || currentIndex >= sentences.length) {
       btn.classList.remove('speaking');
       btn.textContent = '🔊';
       return;
@@ -678,7 +683,12 @@ function speakText(btn) {
     
     sentUtterance.onend = () => {
       currentIndex++;
-      setTimeout(speakNextSentence, 300);
+      if (!globalStopSpeech) {
+        setTimeout(speakNextSentence, 300);
+      } else {
+        btn.classList.remove('speaking');
+        btn.textContent = '🔊';
+      }
     };
     
     sentUtterance.onerror = () => {
@@ -688,16 +698,6 @@ function speakText(btn) {
     
     window.speechSynthesis.speak(sentUtterance);
   }
-  
-  // Override stop
-  const originalStop = btn.onclick;
-  btn.onclick = () => {
-    isStopped = true;
-    window.speechSynthesis.cancel();
-    btn.classList.remove('speaking');
-    btn.textContent = '🔊';
-    btn.onclick = originalStop;
-  };
   
   speakNextSentence();
 }
