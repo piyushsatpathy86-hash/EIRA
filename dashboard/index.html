@@ -607,7 +607,7 @@ function resetVoiceButton() {
   document.getElementById('input').placeholder = 'Talk to EIRA...';
 }
 
-// Voice output (Speech Synthesis)
+// Voice output (Speech Synthesis with female voice)
 function speakText(btn) {
   const text = btn.getAttribute('data-text');
   if (!text || !('speechSynthesis' in window)) {
@@ -618,7 +618,21 @@ function speakText(btn) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'en-IN';
   utterance.rate = 1;
-  utterance.pitch = 1;
+  utterance.pitch = 1.2;
+  
+  const voices = window.speechSynthesis.getVoices();
+  const femaleVoice = voices.find(v => 
+    v.name.includes('Female') || 
+    v.name.includes('Samantha') || 
+    v.name.includes('Google UK English Female') ||
+    v.name.includes('Microsoft Zira') ||
+    v.name.includes('Karen') ||
+    v.name.includes('Moira') ||
+    v.name.includes('Victoria') ||
+    v.name.includes('Natasha')
+  );
+  if (femaleVoice) utterance.voice = femaleVoice;
+  
   window.speechSynthesis.speak(utterance);
   utterance.onstart = () => { btn.classList.add('speaking'); };
   utterance.onend = () => { btn.classList.remove('speaking'); };
@@ -708,7 +722,6 @@ async function sendMessage() {
   input.value = ''; input.style.height = 'auto';
   document.getElementById('char-count').textContent = '0';
 
-  // Attach file content if pending
   let finalMsg = msg;
   let displayMsg = msg;
   if (pendingFileContent) {
