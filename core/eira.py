@@ -9,6 +9,7 @@ from core.router import detect_intent
 from config.settings import EIRA_BASE_PERSONALITY, MAIN_MODEL
 from tools.memory_tool import save_memory, get_relevant_memory
 
+
 def handle_desktop_action(user_message: str):
     """Desktop actions — direct, no AI needed"""
     msg = user_message.lower()
@@ -22,8 +23,8 @@ def handle_desktop_action(user_message: str):
                 open_youtube_video(url.group())
                 return "Video khul gaya! ✅"
             else:
-                skip = ["open","search","play","on","youtube",
-                        "yt","eira","video","kholo","please","kar"]
+                skip = ["open", "search", "play", "on", "youtube",
+                        "yt", "eira", "video", "kholo", "please", "kar"]
                 words = [w for w in user_message.split()
                          if w.lower() not in skip]
                 query = " ".join(words)
@@ -31,8 +32,8 @@ def handle_desktop_action(user_message: str):
                 return f"YouTube pe search ho gaya: '{query}' ✅"
 
     if any(w in msg for w in ["open", "kholo", "jaao"]):
-        sites = ["google","github","leetcode",
-                 "gmail","linkedin","netflix","spotify"]
+        sites = ["google", "github", "leetcode",
+                 "gmail", "linkedin", "netflix", "spotify"]
         for site in sites:
             if site in msg:
                 from tools.system_control import open_website
@@ -41,8 +42,8 @@ def handle_desktop_action(user_message: str):
 
     if any(w in msg for w in ["wallpaper", "background"]):
         from tools.desktop_control import download_and_set_wallpaper
-        skip = ["wallpaper","background","change","set",
-                "eira","please","karo","kar","mera","meri"]
+        skip = ["wallpaper", "background", "change", "set",
+                "eira", "please", "karo", "kar", "mera", "meri"]
         words = [w for w in user_message.split()
                  if w.lower() not in skip]
         query = " ".join(words) if words else "nature dark aesthetic"
@@ -58,7 +59,7 @@ def handle_desktop_action(user_message: str):
 
     if any(w in msg for w in ["open", "kholo", "launch"]):
         from tools.system_control import open_app
-        skip = ["open","kholo","launch","eira","please","kar","karo"]
+        skip = ["open", "kholo", "launch", "eira", "please", "kar", "karo"]
         words = [w for w in user_message.split()
                  if w.lower() not in skip]
         app = " ".join(words)
@@ -77,8 +78,8 @@ def chat_with_eira(user_message: str, history: list = []) -> str:
 
     # Step 2 — Kaunsa agent?
     routing = detect_intent(user_message)
-    agent   = routing["agent"]
-    model   = routing["model"]
+    agent = routing["agent"]
+    model = routing["model"]
     print(f"\n[EIRA] Agent: {agent.upper()} | ", end="")
 
     # Step 3 — Agent prompts
@@ -161,12 +162,12 @@ Based on these results, give a clear, helpful, and well-structured answer."""
         messages.append(msg)
     messages.append({"role": "user", "content": user_message})
 
-    # Step 4 — Groq ya Ollama fallback
+    # Step 4 — Groq only (Ollama fallback removed for production)
     final_response = ""
     try:
         from groq import Groq
         from config.settings import GROQ_API_KEY, GROQ_MODEL
-        client   = Groq(api_key=GROQ_API_KEY)
+        client = Groq(api_key=GROQ_API_KEY)
         print(f"Groq | Model: {GROQ_MODEL}")
         response = client.chat.completions.create(
             model=GROQ_MODEL,
@@ -176,14 +177,8 @@ Based on these results, give a clear, helpful, and well-structured answer."""
         final_response = response.choices[0].message.content
 
     except Exception as e:
-        print(f"Groq error: {e} — falling back to Ollama")
-        try:
-            import ollama
-            print(f"Ollama | Model: {model}")
-            response = ollama.chat(model=model, messages=messages)
-            final_response = response["message"]["content"]
-        except Exception as e2:
-            return f"EIRA error: {str(e2)}"
+        print(f"Groq error: {e}")
+        return f"EIRA error: Groq unavailable - {str(e)}"
 
     # Step 5 — Memory mein save karo
     try:
@@ -207,7 +202,7 @@ def run_terminal_chat():
             user_input = input("\nTum: ").strip()
             if not user_input:
                 continue
-            if user_input.lower() in ["quit","exit","bye","band kar"]:
+            if user_input.lower() in ["quit", "exit", "bye", "band kar"]:
                 print("\nEIRA: Chal phir milte hain! 👋")
                 break
 
