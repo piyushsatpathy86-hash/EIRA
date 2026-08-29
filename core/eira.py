@@ -157,9 +157,14 @@ Based on these results, give a clear, helpful, and well-structured answer."""
         except Exception as e:
             print(f"Search error: {e}")
 
+    # Build messages (sanitized for Groq — only role + content)
     messages = [{"role": "system", "content": system_prompt}]
     for msg in history[-4:]:
-        messages.append(msg)
+        clean_msg = {
+            "role": msg.get("role", "user"),
+            "content": msg.get("content", "")
+        }
+        messages.append(clean_msg)
     messages.append({"role": "user", "content": user_message})
 
     # Step 4 — Groq only (Ollama fallback removed for production)
