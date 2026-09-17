@@ -160,6 +160,7 @@ textarea::placeholder{color:var(--muted);}
 .upload-btn:hover,.voice-btn:hover{border-color:var(--accent);color:var(--accent);}
 .upload-btn.has-file{border-color:var(--accent2);color:var(--accent);}
 .voice-btn.recording{border-color:#ef4444;color:#ef4444;animation:pulse 1s infinite;}
+.voice-btn.call-active{border-color:#22c55e;color:#22c55e;animation:pulse 1.4s infinite;}
 .send-btn{background:var(--accent2);border:none;border-radius:var(--radius-sm);color:#fff;cursor:pointer;font-size:16px;height:34px;width:34px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
 .send-btn:hover{background:var(--accent);transform:scale(1.05);}
 .send-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
@@ -323,10 +324,11 @@ textarea::placeholder{color:var(--muted);}
         <textarea id="input" placeholder="Talk to EIRA..." rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this);updateCount(this)"></textarea>
         <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Voice input">🎙</button>
+        <button class="voice-btn" id="call-btn" onclick="toggleCallMode()" title="Voice call mode — continuous back-and-forth">📞</button>
         <button class="send-btn" id="send-btn" onclick="sendMessage()">↑</button>
       </div>
       <div class="input-footer">
-        <div class="input-hint">Enter — send · Shift+Enter — new line · 📎 upload · 🎙 voice</div>
+        <div class="input-hint">Enter — send · Shift+Enter — new line · 📎 upload · 🎙 voice · 📞 call mode</div>
         <div class="char-count" id="char-count">0</div>
       </div>
       <div style="text-align:center;padding-top:5px;font-size:10px;color:var(--muted);font-family:var(--font-mono);opacity:0.55;">
@@ -367,9 +369,9 @@ textarea::placeholder{color:var(--muted);}
     <div style="padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
       <div style="font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Contact & Support</div>
       <div style="display:grid;gap:10px;">
-        <div style="font-size:12px;color:var(--text);">🐛 <strong>Bug / Issue?</strong><br><a href="https://github.com/piyushsatpathy86-hash/EIRA/issues" target="_blank" style="color:var(--accent);font-size:11px;font-family:var(--font-mono);">github.com/piyushsatpathy86-hash/EIRA</a></div>
+        <div style="font-size:12px;color:var(--text);">🐛 <strong>Facing an issue?</strong><br>Contact:</div>
         <div style="font-size:12px;color:var(--text);">📧 <strong>Email</strong><br><a href="mailto:piyushsatpathy86@gmail.com" style="color:var(--accent);font-size:11px;font-family:var(--font-mono);">piyushsatpathy86@gmail.com</a></div>
-        <div style="font-size:12px;color:var(--text);">👨‍💻 <strong>Built by</strong><br><span style="color:var(--muted);font-size:11px;font-family:var(--font-mono);">Piyush Satpathy · 2nd year CSE · GITA College, Bhubaneswar</span></div>
+        <div style="font-size:12px;color:var(--text);">👨‍💻 <strong>Built by</strong><br><span style="color:var(--muted);font-size:11px;font-family:var(--font-mono);">Piyush Satpathy · 2nd year CSE · GITA College, Bhubaneswar</span><br><a href="https://instagram.com/piyus_hcodes" target="_blank" style="color:var(--accent);font-size:11px;font-family:var(--font-mono);">@piyus_hcodes</a></div>
       </div>
     </div>
   </div>
@@ -851,6 +853,193 @@ function speakText(btn) {
   }
   
   speakNextSentence();
+}
+
+// ============================================================
+// Call Mode — continuous voice conversation (free, browser-only)
+// Speak -> auto sends -> EIRA replies + auto speaks -> listens again.
+// Beech mein bolne se (barge-in) EIRA turant chup ho jaati hai.
+// ============================================================
+let callModeActive = false;
+let callRecognition = null;
+let bargeInRecognition = null;
+let isSpeakingCall = false;
+
+function toggleCallMode() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Voice not supported in this browser. Use Chrome.');
+    return;
+  }
+  if (callModeActive) stopCallMode();
+  else startCallMode();
+}
+
+function startCallMode() {
+  callModeActive = true;
+  const btn = document.getElementById('call-btn');
+  btn.classList.add('call-active');
+  btn.textContent = '📵';
+  showToast('Call mode ON — bas boliye, EIRA reply karegi', 'info');
+  startCallListening();
+}
+
+function stopCallMode() {
+  callModeActive = false;
+  isSpeakingCall = false;
+  const btn = document.getElementById('call-btn');
+  btn.classList.remove('call-active');
+  btn.textContent = '📞';
+  window.speechSynthesis.cancel();
+  if (callRecognition) { try { callRecognition.stop(); } catch(e) {} }
+  if (bargeInRecognition) { try { bargeInRecognition.stop(); } catch(e) {} }
+  showToast('Call mode OFF');
+}
+
+function startCallListening() {
+  if (!callModeActive) return;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  callRecognition = new SpeechRecognition();
+  callRecognition.lang = 'en-IN';
+  callRecognition.continuous = true;
+  callRecognition.interimResults = true;
+
+  let finalTranscript = '';
+
+  callRecognition.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript + ' ';
+      }
+    }
+  };
+
+  callRecognition.onerror = (event) => {
+    if (event.error === 'no-speech' || event.error === 'aborted') return;
+    showToast('Voice error: ' + event.error);
+  };
+
+  callRecognition.onend = () => {
+    const text = finalTranscript.trim();
+    finalTranscript = '';
+    if (!callModeActive) return;
+    if (text) {
+      sendCallMessage(text);
+    } else {
+      setTimeout(startCallListening, 400);
+    }
+  };
+
+  try { callRecognition.start(); } catch(e) {}
+}
+
+async function sendCallMessage(text) {
+  addMsg('user', text);
+  chatHistory.push({role:'user', content:text});
+  document.getElementById('typing').classList.add('visible');
+
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API}/chat`, {
+      method:'POST', headers,
+      body: JSON.stringify({message:text, history:chatHistory.slice(-10), session_id:currentSessionId||''})
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    const data = await res.json();
+    document.getElementById('typing').classList.remove('visible');
+    if (!currentSessionId) { currentSessionId = data.session_id; setTimeout(loadSessions, 500); }
+    addMsg('eira', data.response, data.agent, data.model);
+    chatHistory.push({role:'assistant', content:data.response, agent:data.agent});
+    if (data.model) document.getElementById('current-model').textContent = data.model;
+    setTimeout(loadSessions, 300);
+
+    speakCallResponse(data.response);
+  } catch(err) {
+    document.getElementById('typing').classList.remove('visible');
+    showToast('EIRA offline — check backend');
+    if (callModeActive) setTimeout(startCallListening, 800);
+  }
+}
+
+function startBargeInListener() {
+  if (!callModeActive) return;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  bargeInRecognition = new SpeechRecognition();
+  bargeInRecognition.lang = 'en-IN';
+  bargeInRecognition.continuous = true;
+  bargeInRecognition.interimResults = true;
+
+  bargeInRecognition.onresult = () => {
+    // User ne beech mein bolna shuru kiya — EIRA ko turant chup karo
+    if (isSpeakingCall) {
+      isSpeakingCall = false;
+      window.speechSynthesis.cancel();
+      try { bargeInRecognition.stop(); } catch(e) {}
+      startCallListening();
+    }
+  };
+  bargeInRecognition.onerror = () => {};
+  bargeInRecognition.onend = () => {
+    if (isSpeakingCall && callModeActive) {
+      try { bargeInRecognition.start(); } catch(e) {}
+    }
+  };
+
+  try { bargeInRecognition.start(); } catch(e) {}
+}
+
+function speakCallResponse(text) {
+  if (!callModeActive) return;
+  if (!text || !('speechSynthesis' in window)) {
+    if (callModeActive) startCallListening();
+    return;
+  }
+
+  let cleaned = text.replace(/```[\s\S]*?```/g, ' code block ');
+  cleaned = cleaned.replace(/`[^`]*`/g, ' ');
+  cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, ' link ');
+  cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, ' ');
+  cleaned = cleaned.replace(/[#*_~>|+\-=<>\[\](){}]/g, ' ');
+  cleaned = cleaned.replace(/[!?]+/g, '.');
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+  if (!cleaned) { if (callModeActive) startCallListening(); return; }
+
+  const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
+  const femaleVoice =
+    voices.find(v => v.name.toLowerCase().includes('heera')) ||
+    voices.find(v => v.name.toLowerCase().includes('zira')) ||
+    voices.find(v => v.name.toLowerCase().includes('google uk english female')) ||
+    voices.find(v => v.name.toLowerCase().includes('female'));
+
+  const sentences = cleaned.split(/(?<=[.!?])\s+/);
+  let currentIndex = 0;
+  isSpeakingCall = true;
+  startBargeInListener();
+
+  function speakNext() {
+    if (!callModeActive || !isSpeakingCall || currentIndex >= sentences.length) {
+      isSpeakingCall = false;
+      if (bargeInRecognition) { try { bargeInRecognition.stop(); } catch(e) {} }
+      if (callModeActive) startCallListening();
+      return;
+    }
+    const sentence = sentences[currentIndex].trim();
+    if (!sentence) { currentIndex++; speakNext(); return; }
+
+    const u = new SpeechSynthesisUtterance(sentence);
+    u.lang = 'en-US'; u.rate = 1.1; u.pitch = 1.3;
+    if (femaleVoice) { u.voice = femaleVoice; u.lang = femaleVoice.lang; }
+
+    u.onend = () => {
+      currentIndex++;
+      if (isSpeakingCall) setTimeout(speakNext, 250);
+    };
+    u.onerror = () => { currentIndex++; speakNext(); };
+
+    window.speechSynthesis.speak(u);
+  }
+
+  speakNext();
 }
 
 function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
