@@ -18,14 +18,16 @@ os.makedirs(MEMORY_DIR, exist_ok=True)
 client = chromadb.PersistentClient(path=MEMORY_DIR)
 collection = client.get_or_create_collection(name="eira_memory")
 
-def save_memory(user_msg: str, eira_response: str, agent: str = "general"):
-    """Conversation save karo memory mein"""
+def save_memory(user_msg: str, eira_response: str, agent: str = "general",
+                 user_id: str = "anonymous"):
+    """Conversation save karo memory mein — user_id se scoped"""
     try:
         doc_id = f"mem_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
         collection.add(
             documents=[f"User: {user_msg}\nEIRA: {eira_response}"],
             metadatas=[{
                 "agent": agent,
+                "user_id": user_id,
                 "timestamp": datetime.now().isoformat(),
                 "user_msg": user_msg[:200]
             }],
@@ -36,8 +38,9 @@ def save_memory(user_msg: str, eira_response: str, agent: str = "general"):
         print(f"Memory save error: {e}")
         return False
 
-def get_relevant_memory(query: str, n_results: int = 3) -> str:
-    """Query se related purani conversations dhundho"""
+def get_relevant_memory(query: str, user_id: str = "anonymous",
+                        n_results: int = 3) -> str:
+    """Query se related purani conversations dhundho — sirf isi user_id ki"""
     try:
         count = collection.count()
         if count == 0:
@@ -45,7 +48,8 @@ def get_relevant_memory(query: str, n_results: int = 3) -> str:
 
         results = collection.query(
             query_texts=[query],
-            n_results=min(n_results, count)
+            n_results=min(n_results, count),
+            where={"user_id": user_id}
         )
 
         if not results["documents"][0]:
@@ -74,11 +78,11 @@ if __name__ == "__main__":
     print("Testing EIRA Memory...")
     save_memory("what is binary search?",
                 "Binary search is a search algorithm...",
-                "study")
+                "study", user_id="test_user")
     save_memory("write a java hello world",
                 "public class Hello { ... }",
-                "coding")
+                "coding", user_id="test_user")
 
-    result = get_relevant_memory("binary search algorithm")
+    result = get_relevant_memory("binary search algorithm", user_id="test_user")
     print(f"Memory found:\n{result}")
     print("Memory test complete! ✅")

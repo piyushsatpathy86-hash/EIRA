@@ -143,7 +143,8 @@ async def chat(request: Request, body: ChatRequest):
         create_session(session_id, "New Chat", user_id)
 
     routing = detect_intent(body.message)
-    response = chat_with_eira(body.message, body.history)
+    # user_id pass karo taaki memory sirf isi user ki fetch/save ho
+    response = chat_with_eira(body.message, body.history, user_id=user_id)
 
     save_message(session_id, "user", body.message,
                  routing["agent"], routing["model"])
@@ -221,7 +222,9 @@ async def session_messages(session_id: str, request: Request):
     user_id = verify_token_and_get_user(request)
     if not user_id:
         return JSONResponse(status_code=401, content={"error": "Login required"})
-    return get_messages(session_id)
+    # user_id pass karo taaki koi doosre user ka session_id guess karke
+    # uske messages na padh sake (ownership check ab query mein hi hai)
+    return get_messages(session_id, user_id=user_id)
 
 @app.post("/sessions")
 async def new_session(request: Request, req: SessionRequest):

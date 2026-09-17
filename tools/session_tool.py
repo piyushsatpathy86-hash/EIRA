@@ -83,15 +83,33 @@ def get_sessions(user_id: str = "anonymous"):
     conn.close()
     return [{"id": r[0], "title": r[1], "updated_at": r[2]} for r in rows]
 
-def get_messages(session_id: str):
+def get_messages(session_id: str, user_id: str = None):
+    """
+    Messages fetch karo.
+    Agar user_id diya hai, ownership verify karta hai (session usi user ka
+    hona chahiye) — warna empty list return hoti hai. user_id na dene par
+    purana behaviour (no ownership check) chalta rehta hai, taaki purane
+    internal/test callers na tootein.
+    """
     init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('''
-        SELECT role, content, agent, model, timestamp
-        FROM messages WHERE session_id = ?
-        ORDER BY id ASC
-    ''', (session_id,))
+
+    if user_id is not None:
+        c.execute('''
+            SELECT m.role, m.content, m.agent, m.model, m.timestamp
+            FROM messages m
+            JOIN sessions s ON m.session_id = s.id
+            WHERE m.session_id = ? AND s.user_id = ?
+            ORDER BY m.id ASC
+        ''', (session_id, user_id))
+    else:
+        c.execute('''
+            SELECT role, content, agent, model, timestamp
+            FROM messages WHERE session_id = ?
+            ORDER BY id ASC
+        ''', (session_id,))
+
     rows = c.fetchall()
     conn.close()
     return [{"role": r[0], "content": r[1], "agent": r[2],

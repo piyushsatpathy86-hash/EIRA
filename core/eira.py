@@ -69,7 +69,8 @@ def handle_desktop_action(user_message: str):
     return None
 
 
-def chat_with_eira(user_message: str, history: list = []) -> str:
+def chat_with_eira(user_message: str, history: list = [],
+                    user_id: str = "anonymous") -> str:
 
     # Step 1 — Desktop action check
     action_result = handle_desktop_action(user_message)
@@ -133,9 +134,9 @@ Never fabricate a plausible-looking link — describing the resource by name is 
                      + agent_prompts.get(agent, agent_prompts["general"])
                      + "\n" + ANTI_HALLUCINATION_GUARD)
 
-    # Step 3.5 — Memory fetch karo
+    # Step 3.5 — Memory fetch karo (sirf isi user_id ki)
     try:
-        relevant_memory = get_relevant_memory(user_message)
+        relevant_memory = get_relevant_memory(user_message, user_id=user_id)
         if relevant_memory:
             system_prompt += f"\n\n{relevant_memory}"
             print(f"[EIRA] Memory loaded ✓ | ", end="")
@@ -185,9 +186,9 @@ Based on these results, give a clear, helpful, and well-structured answer."""
         print(f"Groq error: {e}")
         return f"EIRA error: Groq unavailable - {str(e)}"
 
-    # Step 5 — Memory mein save karo
+    # Step 5 — Memory mein save karo (sirf isi user_id ke naam se)
     try:
-        save_memory(user_message, final_response, agent)
+        save_memory(user_message, final_response, agent, user_id=user_id)
     except Exception as e:
         print(f"Memory save error: {e}")
 
